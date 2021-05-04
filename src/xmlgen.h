@@ -34,7 +34,7 @@ class XMLCodeGenerator : public CodeOutputInterface
                      ) override;
     void startCodeLine(bool) override;
     void endCodeLine() override;
-    void startFontClass(const QCString &colorClass) override;
+    void startFontClass(const FontClass &colorClass) override;
     void endFontClass() override;
     void writeCodeAnchor(const QCString &) override;
     void writeLineNumber(const QCString &extRef,const QCString &compId,

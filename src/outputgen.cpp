@@ -24,6 +24,26 @@
 #include "message.h"
 #include "portable.h"
 
+TextStream& operator<<(TextStream& out, const FontClass &fc)
+{
+  switch (fc)
+  {
+    case FontClass::none:          out << "none"; break;
+    case FontClass::keyword:       out << "keyword"; break;
+    case FontClass::keywordflow:   out << "keywordflow"; break;
+    case FontClass::keywordtype:   out << "keywordtype"; break;
+    case FontClass::comment:       out << "comment"; break;
+    case FontClass::stringliteral: out << "stringliteral"; break;
+    case FontClass::charliteral:   out << "charliteral"; break;
+    case FontClass::vhdllogic:     out << "vhdllogic"; break;
+    case FontClass::vhdlchar:      out << "vhdlchar"; break;
+    case FontClass::vhdldigit:     out << "vhdldigit"; break;
+    case FontClass::vhdlkeyword:   out << "vhdlkeyword"; break;
+    case FontClass::preprocessor:  out << "preprocessor"; break;
+  };
+  return out;
+}
+
 OutputGenerator::OutputGenerator(const QCString &dir) : m_t(nullptr), m_dir(dir)
 {
   //printf("OutputGenerator::OutputGenerator()\n");

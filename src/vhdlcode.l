@@ -103,14 +103,14 @@ struct vhdlcodeYY_state
   const Definition *  currentDefinition = 0;
   const MemberDef *   currentMemberDef = 0;
   bool          includeCodeFragment = false;
-  const char *  currentFontClass = 0;
+  FontClass     currentFontClass = FontClass::none;
 
   bool          lexInit = false;
   int           braceCount = 0;
 };
 
 
-static void writeFont(yyscan_t yyscanner,const char *s,const QCString &text);
+static void writeFont(yyscan_t yyscanner,const FontClass s,const QCString &text);
 static void generateMemLink(yyscan_t yyscanner,CodeOutputInterface &ol,QCString &clName,QCString& memberName);
 static bool writeColoredWord(yyscan_t yyscanner,QCString& word );
 static void generateClassOrGlobalLink(yyscan_t yyscanner,CodeOutputInterface &ol,const QCString &clName, bool typeOnly=false, const QCString &curr_class=QCString());
@@ -128,7 +128,7 @@ static void writeMultiLineCodeLink(yyscan_t yyscanner,CodeOutputInterface &ol,
 static void generateFuncLink(yyscan_t yyscanner,CodeOutputInterface &ol,const MemberDef* mdef);
 static int  countLines(yyscan_t yyscanner);
 static void endFontClass(yyscan_t yyscanner);
-static void startFontClass(yyscan_t yyscanner,const char *s);
+static void startFontClass(yyscan_t yyscanner,const FontClass s);
 static void appStringLower(QCString& qcs,const char* text);
 static void codifyMapLines(yyscan_t yyscanner,const QCString &text);
 static void writeFuncProto(yyscan_t yyscanner);
@@ -217,7 +217,7 @@ XILINX      "INST"|"NET"|"PIN"|"BLKNM"|"BUFG"|"COLLAPSE"|"CPLD"|"COMPGRP"|"CONFI
 
 <Map>{BRACEOPEN}                    {
                                       yyextra->braceCount++;
-                                      writeFont(yyscanner,"vhdlchar",yytext);
+                                      writeFont(yyscanner,FontClass::vhdlchar,yytext);
                                       BEGIN(Map);
                                     }
 
@@ -299,7 +299,7 @@ XILINX      "INST"|"NET"|"PIN"|"BLKNM"|"BUFG"|"COLLAPSE"|"CPLD"|"COMPGRP"|"CONFI
 
 <Map>{BRACECLOSE}                   {
                                       yyextra->braceCount--;
-                                      writeFont(yyscanner,"vhdlchar",yytext);
+                                      writeFont(yyscanner,FontClass::vhdlchar,yytext);
                                       if (yyextra->braceCount==0)
                                       {
                                         BEGIN(Bases);
@@ -324,11 +324,11 @@ XILINX      "INST"|"NET"|"PIN"|"BLKNM"|"BUFG"|"COLLAPSE"|"CPLD"|"COMPGRP"|"CONFI
                                       VhdlDocGen::deleteAllChars(qcs,' ');
                                       if (VhdlDocGen::isNumber(qcs.str()))
                                       {
-                                        writeFont(yyscanner,"vhdllogic",yytext);
+                                        writeFont(yyscanner,FontClass::vhdllogic,yytext);
                                       }
                                       else
                                       {
-                                        writeFont(yyscanner,"keyword",yytext);
+                                        writeFont(yyscanner,FontClass::keyword,yytext);
                                       }
                                     }
 
@@ -346,7 +346,7 @@ XILINX      "INST"|"NET"|"PIN"|"BLKNM"|"BUFG"|"COLLAPSE"|"CPLD"|"COMPGRP"|"CONFI
                                       yyextra->funcProto.append(yytext);
                                       if (yyextra->isProto)
                                       {
-                                        writeFont(yyscanner,"keyword",yytext);
+                                        writeFont(yyscanner,FontClass::keyword,yytext);
                                       }
                                       BEGIN(ParseType);
                                     }
@@ -411,7 +411,7 @@ XILINX      "INST"|"NET"|"PIN"|"BLKNM"|"BUFG"|"COLLAPSE"|"CPLD"|"COMPGRP"|"CONFI
                                             val=val.stripWhiteSpace();
                                             if (VhdlDocGen::isNumber(val.str()))
                                             {
-                                              startFontClass(yyscanner,"vhdllogic");
+                                              startFontClass(yyscanner,FontClass::vhdllogic);
                                               codifyLines(yyscanner,yytext,yyextra->currClass);
                                               endFontClass(yyscanner);
                                             }
@@ -434,7 +434,7 @@ XILINX      "INST"|"NET"|"PIN"|"BLKNM"|"BUFG"|"COLLAPSE"|"CPLD"|"COMPGRP"|"CONFI
                                       yyextra->funcProto+='(';
                                       if (yyextra->isProto)
                                       {
-                                        writeFont(yyscanner,"vhdlchar",yytext);
+                                        writeFont(yyscanner,FontClass::vhdlchar,yytext);
                                       }
                                       BEGIN(ParseType);
                                     }
@@ -444,7 +444,7 @@ XILINX      "INST"|"NET"|"PIN"|"BLKNM"|"BUFG"|"COLLAPSE"|"CPLD"|"COMPGRP"|"CONFI
                                       yyextra->funcProto+=')';
                                       if (yyextra->isProto)
                                       {
-                                        writeFont(yyscanner,"vhdlchar",yytext);
+                                        writeFont(yyscanner,FontClass::vhdlchar,yytext);
                                       }
                                       if (yyextra->braceCount==0 && !yyextra->isProto)// && !yyextra->isPackageBody)
                                       {
@@ -494,11 +494,11 @@ XILINX      "INST"|"NET"|"PIN"|"BLKNM"|"BUFG"|"COLLAPSE"|"CPLD"|"COMPGRP"|"CONFI
 <ParseComponent>{B}*"-"             {
                                       if (strlen(yytext)>=2) // found text ?
                                       {
-                                        writeFont(yyscanner,"keyword",yytext);
+                                        writeFont(yyscanner,FontClass::keyword,yytext);
                                       }
                                       else
                                       {
-                                        writeFont(yyscanner,"vhdlchar",yytext);
+                                        writeFont(yyscanner,FontClass::vhdlchar,yytext);
                                       }
                                     }
 
@@ -513,7 +513,7 @@ XILINX      "INST"|"NET"|"PIN"|"BLKNM"|"BUFG"|"COLLAPSE"|"CPLD"|"COMPGRP"|"CONFI
                                     }
 
 <ParseComponent>{DIGITSS}           {
-                                      startFontClass(yyscanner,"vhdllogic");
+                                      startFontClass(yyscanner,FontClass::vhdllogic);
                                       codifyLines(yyscanner,yytext);
                                       endFontClass(yyscanner);
                                     }
@@ -594,7 +594,7 @@ XILINX      "INST"|"NET"|"PIN"|"BLKNM"|"BUFG"|"COLLAPSE"|"CPLD"|"COMPGRP"|"CONFI
                                       }
                                       else
                                       {
-                                        writeFont(yyscanner,"keywordflow",yytext);
+                                        writeFont(yyscanner,FontClass::keywordflow,yytext);
                                       }
                                       BEGIN(Bases);
                                     }
@@ -713,11 +713,11 @@ XILINX      "INST"|"NET"|"PIN"|"BLKNM"|"BUFG"|"COLLAPSE"|"CPLD"|"COMPGRP"|"CONFI
 
 <Bases>^{B}*("begin "|"begin")      {
                                       yyextra->isFuncProto=false;
-                                      writeFont(yyscanner,"vhdlkeyword",yytext);
+                                      writeFont(yyscanner,FontClass::vhdlkeyword,yytext);
                                     }
 
 <Bases>^{B}*("use"|"library"){BN}+  { //found package or library
-                                      writeFont(yyscanner,"vhdlkeyword",yytext);
+                                      writeFont(yyscanner,FontClass::vhdlkeyword,yytext);
                                       BEGIN(ParsePackage);
                                     }
 
@@ -737,7 +737,7 @@ XILINX      "INST"|"NET"|"PIN"|"BLKNM"|"BUFG"|"COLLAPSE"|"CPLD"|"COMPGRP"|"CONFI
 
 <Bases>^{B}*("entity"|"package"){BN}+ {
                                       appStringLower(yyextra->prevString,yytext);
-                                      writeFont(yyscanner,"keywordflow",yytext);
+                                      writeFont(yyscanner,FontClass::keywordflow,yytext);
                                       yyextra->isPackageBody=false;
                                       BEGIN(ClassesName);
                                     }
@@ -783,7 +783,7 @@ XILINX      "INST"|"NET"|"PIN"|"BLKNM"|"BUFG"|"COLLAPSE"|"CPLD"|"COMPGRP"|"CONFI
                                       QCString qcs(yytext);
                                       if (!writeColoredWord(yyscanner,qcs))
                                       {
-                                        startFontClass(yyscanner,"vhdlchar");
+                                        startFontClass(yyscanner,FontClass::vhdlchar);
                                         yyextra->code->codify(yytext);
                                         endFontClass(yyscanner);
                                       }
@@ -797,14 +797,14 @@ XILINX      "INST"|"NET"|"PIN"|"BLKNM"|"BUFG"|"COLLAPSE"|"CPLD"|"COMPGRP"|"CONFI
 
                                       if (!writeColoredWord(yyscanner,temp))
                                       {
-                                        startFontClass(yyscanner,"vhdlchar");
+                                        startFontClass(yyscanner,FontClass::vhdlchar);
                                         generateMemLink(yyscanner,*yyextra->code,yyextra->currClass,temp);
                                         endFontClass(yyscanner);
                                       }
                                     }
 
 <Bases,ParseComponent>{DIGITSS}     {
-                                      startFontClass(yyscanner,"vhdllogic");
+                                      startFontClass(yyscanner,FontClass::vhdllogic);
                                       codifyLines(yyscanner,yytext);
                                       endFontClass(yyscanner);
                                     }
@@ -827,13 +827,13 @@ XILINX      "INST"|"NET"|"PIN"|"BLKNM"|"BUFG"|"COLLAPSE"|"CPLD"|"COMPGRP"|"CONFI
                                     }
 
 <Bases>{OPERATOR}                   {
-                                      startFontClass(yyscanner,"vhdlchar");
+                                      startFontClass(yyscanner,FontClass::vhdlchar);
                                       yyextra->code->codify(yytext);
                                       endFontClass(yyscanner);
                                     }
 
 <Bases>","|"."|":"|"'"|"("|")"      {
-                                      startFontClass(yyscanner,"vhdlchar");
+                                      startFontClass(yyscanner,FontClass::vhdlchar);
                                       yyextra->code->codify(yytext);
                                       endFontClass(yyscanner);
                                     }
@@ -845,16 +845,16 @@ XILINX      "INST"|"NET"|"PIN"|"BLKNM"|"BUFG"|"COLLAPSE"|"CPLD"|"COMPGRP"|"CONFI
 
                                       if (VhdlDocGen::isNumber(qcs.str()))
                                       {
-                                        writeFont(yyscanner,"vhdllogic",yytext);
+                                        writeFont(yyscanner,FontClass::vhdllogic,yytext);
                                       }
                                       else
                                       {
-                                        writeFont(yyscanner,"keyword",yytext);
+                                        writeFont(yyscanner,FontClass::keyword,yytext);
                                       }
                                     }
 
 <Bases>{B}*"#"[^\n]*                {
-                                      writeFont(yyscanner,"keyword",yytext);
+                                      writeFont(yyscanner,FontClass::keyword,yytext);
                                     }
 
 <Bases>^{B}*{XILINX}/[^a-zA-Z0-9_]  {
@@ -961,14 +961,14 @@ static bool checkVhdlString(yyscan_t yyscanner,QCString &name)
     if (VhdlDocGen::isNumber(qrl[0]))
     {
       yyextra->code->codify("\"");
-      startFontClass(yyscanner,"vhdllogic");
+      startFontClass(yyscanner,FontClass::vhdllogic);
       yyextra->code->codify(inside.c_str());
       endFontClass(yyscanner);
       yyextra->code->codify("\"");
     }
     else
     {
-      startFontClass(yyscanner,"keyword");
+      startFontClass(yyscanner,FontClass::keyword);
       yyextra->code->codify(name);
       endFontClass(yyscanner);
     }
@@ -977,7 +977,7 @@ static bool checkVhdlString(yyscan_t yyscanner,QCString &name)
 
   if (VhdlDocGen::isNumber(name.str()))
   {
-    startFontClass(yyscanner,"vhdllogic");
+    startFontClass(yyscanner,FontClass::vhdllogic);
     yyextra->code->codify(name);
     endFontClass(yyscanner);
     return true;
@@ -1051,7 +1051,7 @@ static void startCodeLine(yyscan_t yyscanner)
   }
   yyextra->code->startCodeLine(yyextra->sourceFileDef);
   yyextra->startCode=true;
-  if (yyextra->currentFontClass)
+  if (yyextra->currentFontClass != FontClass::none)
   {
     yyextra->code->startFontClass(yyextra->currentFontClass);
   }
@@ -1071,7 +1071,7 @@ static void nextCodeLine(yyscan_t yyscanner)
   {
     endCodeLine(yyscanner);    // </div>
   }
-  const char *fc = yyextra->currentFontClass;
+  const FontClass fc = yyextra->currentFontClass;
   if (yyextra->yyLineNr<yyextra->inputLines)
   {
     yyextra->currentFontClass = fc;
@@ -1102,7 +1102,7 @@ static void writeWord(yyscan_t yyscanner,const QCString &word,const QCString &cu
         if (!writeColoredWord(yyscanner,temp)) // is it a keyword ?
         {
           //if (VhdlDocGen::findKeyWord(temp))
-          // writeFont(yyscanner,"vhdlkeyword",temp);
+          // writeFont(yyscanner,FontClass::vhdlkeyword,temp);
           //printf("writeWord: %s\n",qPrint(temp));
           if (!tclass.isEmpty())
           {
@@ -1159,7 +1159,7 @@ static void writeWord(yyscan_t yyscanner,const QCString &word,const QCString &cu
          QCString qc(temp);
          if (VhdlDocGen::isNumber(qc.str()))
          {
-           startFontClass(yyscanner,"vhdllogic");
+           startFontClass(yyscanner,FontClass::vhdllogic);
            yyextra->code->codify(temp);
            endFontClass(yyscanner);
          }
@@ -1195,7 +1195,7 @@ static void codifyLines(yyscan_t yyscanner,const QCString &text,const QCString &
       line = line.left((int)(p-sp)-1);
       if (comment)
       {
-        writeFont(yyscanner,"comment",line);
+        writeFont(yyscanner,FontClass::comment,line);
       }
       else
       {
@@ -1207,7 +1207,7 @@ static void codifyLines(yyscan_t yyscanner,const QCString &text,const QCString &
     {
       if (comment)
       {
-        writeFont(yyscanner,"comment",sp);
+        writeFont(yyscanner,FontClass::comment,sp);
       }
       else
       {
@@ -1394,26 +1394,26 @@ static int countLines(yyscan_t yyscanner)
 static void endFontClass(yyscan_t yyscanner)
 {
   struct yyguts_t *yyg = (struct yyguts_t*)yyscanner;
-  if (yyextra->currentFontClass)
+  if (yyextra->currentFontClass != FontClass::none)
   {
     yyextra->code->endFontClass();
-    yyextra->currentFontClass=0;
+    yyextra->currentFontClass=FontClass::none;
   }
 }
 
-static void startFontClass(yyscan_t yyscanner,const char *s)
+static void startFontClass(yyscan_t yyscanner,const FontClass s)
 {
   struct yyguts_t *yyg = (struct yyguts_t*)yyscanner;
-  if (s==0) return;
+  if (s==FontClass::none) return;
   endFontClass(yyscanner);
   yyextra->code->startFontClass(s);
   yyextra->currentFontClass=s;
 }
 
-static void writeFont(yyscan_t yyscanner,const char *s,const QCString &text)
+static void writeFont(yyscan_t yyscanner,const FontClass s,const QCString &text)
 {
   struct yyguts_t *yyg = (struct yyguts_t*)yyscanner;
-  if (s==0 || text.isEmpty()) return;
+  if (s==FontClass::none || text.isEmpty()) return;
   //printf("writeFont(yyscanner,%d,\"%s\")\n",yyextra->yyLineNr,text);
   yyextra->code->startFontClass(s);
   yyextra->code->codify(text);
@@ -1537,8 +1537,8 @@ static void writeProcessProto(yyscan_t yyscanner)
 static bool writeColoredWord(yyscan_t yyscanner,QCString& word )
 {
   QCString qcs=word.lower();
-  const char *ss=VhdlDocGen::findKeyWord(qcs);
-  if (ss)
+  const FontClass ss=VhdlDocGen::findKeyWord(qcs);
+  if (ss != FontClass::none)
   {
     writeFont(yyscanner,ss,word);
     return true;
@@ -1602,7 +1602,7 @@ void VHDLCodeParser::parseCode(CodeOutputInterface &od,
   yyextra->code = &od;
   yyextra->inputString   = s.data();
   yyextra->inputPosition = 0;
-  yyextra->currentFontClass = 0;
+  yyextra->currentFontClass = FontClass::none;
   yyextra->needsTermination = false;
   yyextra->searchCtx = searchCtx;
 

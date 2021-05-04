@@ -232,7 +232,7 @@ void LatexCodeGenerator::endCodeLine()
   codify("\n");
 }
 
-void LatexCodeGenerator::startFontClass(const QCString &name)
+void LatexCodeGenerator::startFontClass(const FontClass &name)
 {
   m_t << "\\textcolor{" << name << "}{";
 }

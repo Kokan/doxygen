@@ -128,7 +128,7 @@ struct codeYY_state
   const Definition *  currentDefinition = 0;
   const MemberDef *   currentMemberDef = 0;
   bool          includeCodeFragment = FALSE;
-  const char *  currentFontClass = 0;
+  FontClass     currentFontClass = FontClass::none;
   bool          searchingForBody = FALSE;
   bool          insideBody = FALSE;
   int           bodyCurlyCount = 0;
@@ -202,7 +202,7 @@ static void setClassScope(yyscan_t yyscanner,const QCString &name);
 static void startCodeLine(yyscan_t yyscanner);
 static void endCodeLine(yyscan_t yyscanner);
 static void nextCodeLine(yyscan_t yyscanner);
-static void startFontClass(yyscan_t yyscanner,const char *s);
+static void startFontClass(yyscan_t yyscanner,const FontClass s);
 static void endFontClass(yyscan_t yyscanner);
 static void codifyLines(yyscan_t yyscanner,const QCString &text);
 static void codifyLines(yyscan_t yyscanner,const char *text);
@@ -377,13 +377,13 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
 
 <*>\x0d
 <Body>^([ \t]*"#"[ \t]*("include"|"import")[ \t]*)("<"|"\"") {
-                                          startFontClass(yyscanner,"preprocessor");
+                                          startFontClass(yyscanner,FontClass::preprocessor);
                                           yyextra->code->codify(yytext);
                                           BEGIN( ReadInclude );
                                         }
 <Body>("@interface"|"@implementation"|"@protocol")[ \t\n]+ {
                                           yyextra->insideObjC=TRUE;
-                                          startFontClass(yyscanner,"keyword");
+                                          startFontClass(yyscanner,FontClass::keyword);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                           if (!yyextra->insideTemplate)
@@ -391,26 +391,26 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                         }
 <Body>(("public"|"private"){B}+)?("ref"|"value"|"interface"|"enum"){B}+("class"|"struct") {
                                           if (yyextra->insideTemplate) REJECT;
-                                          startFontClass(yyscanner,"keyword");
+                                          startFontClass(yyscanner,FontClass::keyword);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                           BEGIN( ClassName );
                                         }
 <Body>"property"|"event"/{BN}*                  {
                                           if (yyextra->insideTemplate) REJECT;
-                                          startFontClass(yyscanner,"keyword");
+                                          startFontClass(yyscanner,FontClass::keyword);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                         }
 <Body>(KEYWORD_CPPCLI_DATATYPE|("partial"{B}+)?"class"|"struct"|"union"|"namespace"|"interface"){B}+ {
-                                          startFontClass(yyscanner,"keyword");
+                                          startFontClass(yyscanner,FontClass::keyword);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                           if (!yyextra->insideTemplate)
                                             BEGIN( ClassName );
                                         }
 <Body>("package")[ \t\n]+               {
-                                          startFontClass(yyscanner,"keyword");
+                                          startFontClass(yyscanner,FontClass::keyword);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                           BEGIN( PackageName );
@@ -465,7 +465,7 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                           yyextra->code->codify(yytext);
                                         }
 <ObjCParamType>{TYPEKW}                 {
-                                          startFontClass(yyscanner,"keywordtype");
+                                          startFontClass(yyscanner,FontClass::keywordtype);
                                           yyextra->code->codify(yytext);
                                           endFontClass(yyscanner);
                                           yyextra->parmType=yytext;
@@ -543,7 +543,7 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                           BEGIN( Body );
                                         }
 <Body,Bases>^[ \t]*"#"                  {
-                                          startFontClass(yyscanner,"preprocessor");
+                                          startFontClass(yyscanner,FontClass::preprocessor);
                                           yyextra->lastSkipCppContext = YY_START;
                                           yyextra->code->codify(yytext);
                                           BEGIN( SkipCPP ) ;
@@ -643,7 +643,7 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                             yyextra->insideBody=FALSE;
                                           }
 
-                                          startFontClass(yyscanner,"keyword");
+                                          startFontClass(yyscanner,FontClass::keyword);
                                           yyextra->code->codify(yytext);
                                           endFontClass(yyscanner);
 
@@ -664,7 +664,7 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                           BEGIN( Body ); // variable of type struct *
                                         }
 <ClassName>"__declspec"{B}*"("{B}*{ID}{B}*")"   {
-                                          startFontClass(yyscanner,"keyword");
+                                          startFontClass(yyscanner,FontClass::keyword);
                                           yyextra->code->codify(yytext);
                                           endFontClass(yyscanner);
                                         }
@@ -677,7 +677,7 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                           addType(yyscanner);
                                           if (yyextra->curClassName=="alignas")
                                           {
-                                            startFontClass(yyscanner,"keyword");
+                                            startFontClass(yyscanner,FontClass::keyword);
                                             yyextra->code->codify(yytext);
                                             endFontClass(yyscanner);
                                             BEGIN( AlignAs );
@@ -738,7 +738,7 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                           BEGIN( Body );
                                         }
 <ClassVar>("extends"|"implements")      { // Java, Slice
-                                          startFontClass(yyscanner,"keyword");
+                                          startFontClass(yyscanner,FontClass::keyword);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                           yyextra->curClassBases.clear();
@@ -746,7 +746,7 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                         }
 <ClassVar>("sealed"|"abstract")/{BN}*(":"|"{") {
                                           DBG_CTX((stderr,"***** C++/CLI modifier %s on yyextra->curClassName=%s\n",yytext,qPrint(yyextra->curClassName)));
-                                          startFontClass(yyscanner,"keyword");
+                                          startFontClass(yyscanner,FontClass::keyword);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                           BEGIN( CppCliTypeModifierFollowup );
@@ -819,7 +819,7 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                           BEGIN( Body );
                                         }
 <Bases>"virtual"|"public"|"protected"|"private"|"@public"|"@private"|"@protected" {
-                                          startFontClass(yyscanner,"keyword");
+                                          startFontClass(yyscanner,FontClass::keyword);
                                           yyextra->code->codify(yytext);
                                           endFontClass(yyscanner);
                                         }
@@ -909,20 +909,20 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                           BEGIN( FuncCall );
                                         }
 <Body,TemplDecl>("template"|"generic")/([^a-zA-Z0-9])           {
-                                          startFontClass(yyscanner,"keyword");
+                                          startFontClass(yyscanner,FontClass::keyword);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                           yyextra->insideTemplate=TRUE;
                                           yyextra->sharpCount=0;
                                         }
 <Body>"concept"{BN}+                    {
-                                          startFontClass(yyscanner,"keyword");
+                                          startFontClass(yyscanner,FontClass::keyword);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                           BEGIN(ConceptName);
                                         }
 <Body>"using"{BN}+"namespace"{BN}+      {
-                                          startFontClass(yyscanner,"keyword");
+                                          startFontClass(yyscanner,FontClass::keyword);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                           BEGIN(UsingName);
@@ -945,7 +945,7 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
 <Body>{KEYWORD}/([^a-z_A-Z0-9])         {
                                           if (yyextra->lang==SrcLangExt_Java && qstrcmp("internal",yytext) ==0) REJECT;
                                           if (skipLanguageSpecificKeyword(yyscanner,yytext)) REJECT;
-                                          startFontClass(yyscanner,"keyword");
+                                          startFontClass(yyscanner,FontClass::keyword);
                                           codifyLines(yyscanner,yytext);
                                           if (QCString(yytext)=="typedef")
                                           {
@@ -956,20 +956,20 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                         }
 <Body>{KEYWORD}/{B}*                    {
                                           if (skipLanguageSpecificKeyword(yyscanner,yytext)) REJECT;
-                                          startFontClass(yyscanner,"keyword");
+                                          startFontClass(yyscanner,FontClass::keyword);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                         }
 <Body>{KEYWORD}/{BN}*"("                {
                                           if (skipLanguageSpecificKeyword(yyscanner,yytext)) REJECT;
-                                          startFontClass(yyscanner,"keyword");
+                                          startFontClass(yyscanner,FontClass::keyword);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                           yyextra->name.resize(0);yyextra->type.resize(0);
                                         }
 <FuncCall>"in"/{BN}*                    {
                                           if (!yyextra->inForEachExpression) REJECT;
-                                          startFontClass(yyscanner,"keywordflow");
+                                          startFontClass(yyscanner,FontClass::keywordflow);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                           // insert the variable in the parent scope, see bug 546158
@@ -979,7 +979,7 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                           yyextra->name.resize(0);yyextra->type.resize(0);
                                         }
 <Body>{FLOWKW}/{BN}*"("                         {
-                                          startFontClass(yyscanner,"keywordflow");
+                                          startFontClass(yyscanner,FontClass::keywordflow);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                           yyextra->name.resize(0);yyextra->type.resize(0);
@@ -988,7 +988,7 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                         }
 <Body>{FLOWCONDITION}/{BN}*"("          {
                                           incrementFlowKeyWordCount(yyscanner);
-                                          startFontClass(yyscanner,"keywordflow");
+                                          startFontClass(yyscanner,FontClass::keywordflow);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                           yyextra->name.resize(0);yyextra->type.resize(0);
@@ -996,7 +996,7 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                           BEGIN(FuncCall);
                                         }
 <Body>{FLOWKW}/([^a-z_A-Z0-9])          {
-                                          startFontClass(yyscanner,"keywordflow");
+                                          startFontClass(yyscanner,FontClass::keywordflow);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                           if (yyextra->inFunctionTryBlock && (qstrcmp(yytext,"catch")==0 || qstrcmp(yytext,"finally")==0))
@@ -1006,7 +1006,7 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                         }
 <Body>{FLOWCONDITION}/([^a-z_A-Z0-9])   {
                                           incrementFlowKeyWordCount(yyscanner);
-                                          startFontClass(yyscanner,"keywordflow");
+                                          startFontClass(yyscanner,FontClass::keywordflow);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                           if (yyextra->inFunctionTryBlock && (strcmp(yytext,"catch")==0 || strcmp(yytext,"finally")==0))
@@ -1015,13 +1015,13 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                           }
                                         }
 <Body>{FLOWKW}/{B}*                     {
-                                          startFontClass(yyscanner,"keywordflow");
+                                          startFontClass(yyscanner,FontClass::keywordflow);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                         }
 <Body>{FLOWCONDITION}/{B}*              {
                                           incrementFlowKeyWordCount(yyscanner);
-                                          startFontClass(yyscanner,"keywordflow");
+                                          startFontClass(yyscanner,FontClass::keywordflow);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                         }
@@ -1046,7 +1046,7 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                           }
                                         }
 <Body,TemplDecl,ObjCMethod>{TYPEKW}/{B}* {
-                                          startFontClass(yyscanner,"keywordtype");
+                                          startFontClass(yyscanner,FontClass::keywordtype);
                                           yyextra->code->codify(yytext);
                                           endFontClass(yyscanner);
                                           addType(yyscanner);
@@ -1059,7 +1059,7 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                           }
                                           else
                                           {
-                                            startFontClass(yyscanner,"keywordtype");
+                                            startFontClass(yyscanner,FontClass::keywordtype);
                                             yyextra->code->codify(yytext);
                                             endFontClass(yyscanner);
                                             addType(yyscanner);
@@ -1067,21 +1067,21 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                           }
                                         }
 <Body>"generic"/{B}*"<"[^\n\/\-\.\{\"\>]*">"{B}* {
-                                          startFontClass(yyscanner,"keyword");
+                                          startFontClass(yyscanner,FontClass::keyword);
                                           yyextra->code->codify(yytext);
                                           endFontClass(yyscanner);
                                           yyextra->sharpCount=0;
                                           BEGIN(TemplDecl);
                                         }
 <Body>"template"/{B}*"<"[^\n\/\-\.\{\"\>]*">"{B}* { // template<...>
-                                          startFontClass(yyscanner,"keyword");
+                                          startFontClass(yyscanner,FontClass::keyword);
                                           yyextra->code->codify(yytext);
                                           endFontClass(yyscanner);
                                           yyextra->sharpCount=0;
                                           BEGIN(TemplDecl);
                                         }
 <TemplDecl>"class"|"typename"           {
-                                          startFontClass(yyscanner,"keyword");
+                                          startFontClass(yyscanner,FontClass::keyword);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                         }
@@ -1098,7 +1098,7 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                           }
                                         }
 <TemplCast>">"                          {
-                                          startFontClass(yyscanner,"keyword");
+                                          startFontClass(yyscanner,FontClass::keyword);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                           BEGIN( yyextra->lastTemplCastContext );
@@ -1107,7 +1107,7 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                           generateClassOrGlobalLink(yyscanner,*yyextra->code,yytext);
                                         }
 <TemplCast>("const"|"volatile"){B}*     {
-                                          startFontClass(yyscanner,"keyword");
+                                          startFontClass(yyscanner,FontClass::keyword);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                         }
@@ -1115,7 +1115,7 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                           codifyLines(yyscanner,yytext);
                                         }
 <Body,MemberCall2,FuncCall>{CASTKW}{B}*"<"  { // static_cast<T>(
-                                          startFontClass(yyscanner,"keyword");
+                                          startFontClass(yyscanner,FontClass::keyword);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                           yyextra->lastTemplCastContext = YY_START;
@@ -1173,7 +1173,7 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                           QCString text(yytext);
                                           uint i=(uint)text.find('R');
                                           yyextra->code->codify(text.left(i+1));
-                                          startFontClass(yyscanner,"stringliteral");
+                                          startFontClass(yyscanner,FontClass::stringliteral);
                                           yyextra->code->codify(QCString(yytext+i+1));
                                           yyextra->lastStringContext=YY_START;
                                           yyextra->inForEachExpression = FALSE;
@@ -1182,7 +1182,7 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                           BEGIN( RawString );
                                         }
 <FuncCall,Body,MemberCall,MemberCall2,SkipInits,InlineInit>\"   {
-                                          startFontClass(yyscanner,"stringliteral");
+                                          startFontClass(yyscanner,FontClass::stringliteral);
                                           yyextra->code->codify(yytext);
                                           yyextra->lastStringContext=YY_START;
                                           yyextra->inForEachExpression = FALSE;
@@ -1193,7 +1193,7 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                           yyextra->code->codify(yytext);
                                         }
 <FuncCall,Body,MemberCall,MemberCall2,SkipInits,InlineInit>\'   {
-                                          startFontClass(yyscanner,"stringliteral");
+                                          startFontClass(yyscanner,FontClass::stringliteral);
                                           yyextra->code->codify(yytext);
                                           yyextra->lastStringContext=YY_START;
                                           yyextra->inForEachExpression = FALSE;
@@ -1272,7 +1272,7 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                           yyextra->code->codify(yytext);
                                         }
 <Body,MemberCall,MemberCall2,FuncCall>"'"((\\0[Xx0-9]+)|(\\.)|(.))"'"   {
-                                          startFontClass(yyscanner,"charliteral");
+                                          startFontClass(yyscanner,FontClass::charliteral);
                                           yyextra->code->codify(yytext);
                                           endFontClass(yyscanner);
                                         }
@@ -1488,14 +1488,14 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                           //addParmType(yyscanner);
                                           //yyextra->parmName=yytext;
                                           if (skipLanguageSpecificKeyword(yyscanner,yytext)) REJECT;
-                                          startFontClass(yyscanner,"keyword");
+                                          startFontClass(yyscanner,FontClass::keyword);
                                           yyextra->code->codify(yytext);
                                           endFontClass(yyscanner);
                                         }
 <MemberCall2,FuncCall,OldStyleArgs,TemplCast>{TYPEKW}/([^a-z_A-Z0-9]) {
                                           addParmType(yyscanner);
                                           yyextra->parmName=yytext;
-                                          startFontClass(yyscanner,"keywordtype");
+                                          startFontClass(yyscanner,FontClass::keywordtype);
                                           yyextra->code->codify(yytext);
                                           endFontClass(yyscanner);
                                         }
@@ -1508,7 +1508,7 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                           {
                                             addParmType(yyscanner);
                                             yyextra->parmName=yytext;
-                                            startFontClass(yyscanner,"keywordtype");
+                                            startFontClass(yyscanner,FontClass::keywordtype);
                                             yyextra->code->codify(yytext);
                                             endFontClass(yyscanner);
                                           }
@@ -1516,7 +1516,7 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
 <MemberCall2,FuncCall>{FLOWKW}/([^a-z_A-Z0-9]) {
                                           addParmType(yyscanner);
                                           yyextra->parmName=yytext;
-                                          startFontClass(yyscanner,"keywordflow");
+                                          startFontClass(yyscanner,FontClass::keywordflow);
                                           yyextra->code->codify(yytext);
                                           endFontClass(yyscanner);
                                         }
@@ -1524,7 +1524,7 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                           incrementFlowKeyWordCount(yyscanner);
                                           addParmType(yyscanner);
                                           yyextra->parmName=yytext;
-                                          startFontClass(yyscanner,"keywordflow");
+                                          startFontClass(yyscanner,FontClass::keywordflow);
                                           yyextra->code->codify(yytext);
                                           endFontClass(yyscanner);
                                         }
@@ -1661,7 +1661,7 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                           }
                                         }
 <CallEnd>{ENDQopt}/{BN}*(";"|"="|"throw"{BN}*"(") {
-                                          startFontClass(yyscanner,"keyword");
+                                          startFontClass(yyscanner,FontClass::keyword);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                         }
@@ -1702,7 +1702,7 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                           QCString cv(yytext);
                                           if (!cv.stripWhiteSpace().isEmpty())
                                           {
-                                            startFontClass(yyscanner,"keyword");
+                                            startFontClass(yyscanner,FontClass::keyword);
                                             codifyLines(yyscanner,yytext);
                                             endFontClass(yyscanner);
                                           }
@@ -1721,13 +1721,13 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                           BEGIN( Body );
                                         }
 <CallEnd>"try"                          { // function-try-block
-                                          startFontClass(yyscanner,"keyword");
+                                          startFontClass(yyscanner,FontClass::keyword);
                                           yyextra->code->codify(yytext);
                                           endFontClass(yyscanner);
                                           yyextra->inFunctionTryBlock=TRUE;
                                         }
 <CallEnd>"requires"                     { // function-try-block
-                                          startFontClass(yyscanner,"keyword");
+                                          startFontClass(yyscanner,FontClass::keyword);
                                           yyextra->code->codify(yytext);
                                           endFontClass(yyscanner);
                                         }
@@ -1754,7 +1754,7 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                           yyextra->parmName.resize(0);
                                         }
 <CallEnd,OldStyleArgs>"#"               {
-                                          startFontClass(yyscanner,"preprocessor");
+                                          startFontClass(yyscanner,FontClass::preprocessor);
                                           yyextra->lastSkipCppContext = Body;
                                           yyextra->code->codify(yytext);
                                           BEGIN( SkipCPP );
@@ -1861,7 +1861,7 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                           endFontClass(yyscanner);
                                           if (yyextra->lastCContext==SkipCPP)
                                           {
-                                            startFontClass(yyscanner,"preprocessor");
+                                            startFontClass(yyscanner,FontClass::preprocessor);
                                           }
                                           BEGIN( yyextra->lastCContext ) ;
                                         }
@@ -1928,7 +1928,7 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                           }
                                           else
                                           {
-                                            startFontClass(yyscanner,"comment");
+                                            startFontClass(yyscanner,FontClass::comment);
                                             codifyLines(yyscanner,yytext);
                                             endFontClass(yyscanner);
                                           }
@@ -1951,7 +1951,7 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                           }
                                           else
                                           {
-                                            startFontClass(yyscanner,"comment");
+                                            startFontClass(yyscanner,FontClass::comment);
                                             codifyLines(yyscanner,yytext);
                                             endFontClass(yyscanner);
                                           }
@@ -1975,7 +1975,7 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                             {
                                               yyextra->lastCContext = YY_START ;
                                             }
-                                            startFontClass(yyscanner,"comment");
+                                            startFontClass(yyscanner,FontClass::comment);
                                             codifyLines(yyscanner,yytext);
                                             BEGIN(SkipComment);
                                           }
@@ -1988,7 +1988,7 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                           }
                                           else
                                           {
-                                            startFontClass(yyscanner,"comment");
+                                            startFontClass(yyscanner,FontClass::comment);
                                             codifyLines(yyscanner,yytext);
                                             endFontClass(yyscanner);
                                           }
@@ -2006,7 +2006,7 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                             {
                                               yyextra->lastCContext = YY_START ;
                                             }
-                                            startFontClass(yyscanner,"comment");
+                                            startFontClass(yyscanner,FontClass::comment);
                                             yyextra->code->codify(yytext);
                                             BEGIN(SkipComment);
                                           }
@@ -2014,7 +2014,7 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
 <*>^{B}*{CPPC}[!/][^\n]*                  { // remove special one-line comment
                                           if (!Config_getBool(STRIP_CODE_COMMENTS))
                                           {
-                                            startFontClass(yyscanner,"comment");
+                                            startFontClass(yyscanner,FontClass::comment);
                                             codifyLines(yyscanner,yytext);
                                             endFontClass(yyscanner);
                                           }
@@ -2023,7 +2023,7 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                           if (YY_START==SkipComment || YY_START==SkipString) REJECT;
                                           if (!Config_getBool(STRIP_CODE_COMMENTS))
                                           {
-                                            startFontClass(yyscanner,"comment");
+                                            startFontClass(yyscanner,FontClass::comment);
                                             codifyLines(yyscanner,yytext);
                                             endFontClass(yyscanner);
                                           }
@@ -2042,7 +2042,7 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                             {
                                               yyextra->lastCContext = YY_START ;
                                             }
-                                            startFontClass(yyscanner,"comment");
+                                            startFontClass(yyscanner,FontClass::comment);
                                             codifyLines(yyscanner,yytext);
                                             BEGIN(SkipComment);
                                           }
@@ -2060,7 +2060,7 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                             {
                                               yyextra->lastCContext = YY_START ;
                                             }
-                                            startFontClass(yyscanner,"comment");
+                                            startFontClass(yyscanner,FontClass::comment);
                                             yyextra->code->codify(yytext);
                                             BEGIN(SkipComment);
                                           }
@@ -2078,7 +2078,7 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                             {
                                               yyextra->lastCContext = YY_START ;
                                             }
-                                            startFontClass(yyscanner,"comment");
+                                            startFontClass(yyscanner,FontClass::comment);
                                             yyextra->code->codify(yytext);
                                             BEGIN(SkipComment);
                                           }
@@ -2097,7 +2097,7 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                             {
                                               yyextra->lastCContext = YY_START ;
                                             }
-                                            startFontClass(yyscanner,"comment");
+                                            startFontClass(yyscanner,FontClass::comment);
                                             yyextra->code->codify(yytext);
                                             BEGIN(SkipComment);
                                           }
@@ -2106,7 +2106,7 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                           if (YY_START==SkipString) REJECT;
                                           if (!Config_getBool(STRIP_CODE_COMMENTS))
                                           {
-                                            startFontClass(yyscanner,"comment");
+                                            startFontClass(yyscanner,FontClass::comment);
                                             yyextra->code->codify(yytext);
                                             endFontClass(yyscanner);
                                           }
@@ -2115,7 +2115,7 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                           yyextra->code->codify(yytext);
                                         }
 <*>{CCS}                                 {
-                                          startFontClass(yyscanner,"comment");
+                                          startFontClass(yyscanner,FontClass::comment);
                                           yyextra->code->codify(yytext);
                                           // check is to prevent getting stuck in skipping C++ comments
                                           if (YY_START != SkipComment && YY_START != SkipCxxComment)
@@ -2125,13 +2125,13 @@ ENDQopt ("const"|"volatile"|"sealed"|"override")({BN}+("const"|"volatile"|"seale
                                           BEGIN( SkipComment ) ;
                                         }
 <*>@\"                                  { // C# verbatim string
-                                          startFontClass(yyscanner,"stringliteral");
+                                          startFontClass(yyscanner,FontClass::stringliteral);
                                           yyextra->code->codify(yytext);
                                           yyextra->lastVerbStringContext=YY_START;
                                           BEGIN(SkipVerbString);
                                         }
 <*>{CPPC}                                 {
-                                          startFontClass(yyscanner,"comment");
+                                          startFontClass(yyscanner,FontClass::comment);
                                           yyextra->code->codify(yytext);
                                           yyextra->lastCContext = YY_START ;
                                           BEGIN( SkipCxxComment ) ;
@@ -2388,9 +2388,9 @@ static void startCodeLine(yyscan_t yyscanner)
   }
   DBG_CTX((stderr,"startCodeLine(%d)\n",yyextra->yyLineNr));
   yyextra->code->startCodeLine(yyextra->sourceFileDef && yyextra->lineNumbers);
-  if (yyextra->currentFontClass)
+  if (yyextra->currentFontClass != FontClass::none)
   {
-    yyextra->code->startFontClass(QCString(yyextra->currentFontClass));
+    yyextra->code->startFontClass(yyextra->currentFontClass);
   }
 }
 
@@ -2407,7 +2407,7 @@ static void endCodeLine(yyscan_t yyscanner)
 static void nextCodeLine(yyscan_t yyscanner)
 {
   struct yyguts_t *yyg = (struct yyguts_t*)yyscanner;
-  const char * fc = yyextra->currentFontClass;
+  const FontClass fc = yyextra->currentFontClass;
   endCodeLine(yyscanner);
   if (yyextra->yyLineNr<yyextra->inputLines)
   {
@@ -3354,18 +3354,18 @@ static int countLines(yyscan_t yyscanner)
 static void endFontClass(yyscan_t yyscanner)
 {
   struct yyguts_t *yyg = (struct yyguts_t*)yyscanner;
-  if (yyextra->currentFontClass)
+  if (yyextra->currentFontClass != FontClass::none)
   {
     yyextra->code->endFontClass();
-    yyextra->currentFontClass=0;
+    yyextra->currentFontClass=FontClass::none;
   }
 }
 
-static void startFontClass(yyscan_t yyscanner,const char *s)
+static void startFontClass(yyscan_t yyscanner,const FontClass s)
 {
   struct yyguts_t *yyg = (struct yyguts_t*)yyscanner;
   endFontClass(yyscanner);
-  yyextra->code->startFontClass(QCString(s));
+  yyextra->code->startFontClass(s);
   yyextra->currentFontClass=s;
 }
 
@@ -3516,7 +3516,7 @@ static void writeObjCMethodCall(yyscan_t yyscanner,ObjCCallCtx *ctx)
                     ctx->method = ctx->objectType->getMemberByName(ctx->methodName);
                   }
                 }
-                startFontClass(yyscanner,"keyword");
+                startFontClass(yyscanner,FontClass::keyword);
                 codifyLines(yyscanner,object);
                 endFontClass(yyscanner);
               }
@@ -3542,7 +3542,7 @@ static void writeObjCMethodCall(yyscan_t yyscanner,ObjCCallCtx *ctx)
                     }
                   }
                 }
-                startFontClass(yyscanner,"keyword");
+                startFontClass(yyscanner,FontClass::keyword);
                 codifyLines(yyscanner,object);
                 endFontClass(yyscanner);
               }
@@ -3650,7 +3650,7 @@ static void writeObjCMethodCall(yyscan_t yyscanner,ObjCCallCtx *ctx)
             if (it!=yyextra->commentMap.end())
             {
               QCString comment = it->second;
-              startFontClass(yyscanner,"comment");
+              startFontClass(yyscanner,FontClass::comment);
               codifyLines(yyscanner,comment);
               endFontClass(yyscanner);
             }
@@ -3855,7 +3855,7 @@ void CCodeParser::parseCode(CodeOutputInterface &od,const QCString &className,co
   yyextra->inputString   = s.data();
   yyextra->inputPosition = 0;
   codeYYrestart(0,yyscanner);
-  yyextra->currentFontClass = 0;
+  yyextra->currentFontClass = FontClass::none;
   yyextra->needsTermination = FALSE;
   yyextra->searchCtx = searchCtx;
   yyextra->collectXRefs = collectXRefs;

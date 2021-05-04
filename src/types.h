@@ -22,6 +22,22 @@
  *  @brief This file contains a number of basic enums and types.
  */
 
+/** FontClass **/
+enum class FontClass {
+   none,
+   keyword,
+   keywordflow,
+   keywordtype,
+   comment,
+   stringliteral,
+   charliteral,
+   vhdllogic,
+   vhdlchar,
+   vhdlkeyword,
+   vhdldigit,
+   preprocessor,
+};
+
 /** Protection level of members */
 enum Protection   { Public, Protected, Private, Package } ;
 

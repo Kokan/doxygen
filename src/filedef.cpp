@@ -209,7 +209,7 @@ class DevNullCodeDocInterface : public CodeOutputInterface
                                  const QCString &,int) override {}
     virtual void startCodeLine(bool) override {}
     virtual void endCodeLine() override {}
-    virtual void startFontClass(const QCString &) override {}
+    virtual void startFontClass(const FontClass &) override {}
     virtual void endFontClass() override {}
     virtual void writeCodeAnchor(const QCString &) override {}
     virtual void setCurrentDoc(const Definition *,const QCString &,bool) override {}

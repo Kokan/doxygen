@@ -258,7 +258,7 @@ class RTFGenerator : public OutputGenerator
     void writeLabel(const QCString &l,bool isLast);
     void endLabels();
 
-    void startFontClass(const QCString &);
+    void startFontClass(const FontClass &);
     void endFontClass();
 
     void writeCodeAnchor(const QCString &) {}

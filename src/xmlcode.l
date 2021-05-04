@@ -77,7 +77,7 @@ struct xmlcodeYY_state
   const Definition *  currentDefinition = 0;
   const MemberDef *   currentMemberDef = 0;
   bool          includeCodeFragment = false;
-  const char *  currentFontClass = 0;
+  FontClass     currentFontClass = FontClass::none;
 };
 
 #if USE_STATE2STRING
@@ -91,7 +91,7 @@ static void endFontClass(yyscan_t yyscanner);
 static void endCodeLine(yyscan_t yyscanner);
 static void nextCodeLine(yyscan_t yyscanner);
 static void codifyLines(yyscan_t yyscanner,const char *text);
-static void startFontClass(yyscan_t yyscanner,const char *s);
+static void startFontClass(yyscan_t yyscanner,const FontClass s);
 static int  countLines(yyscan_t yyscanner);
 static yy_size_t yyread(yyscan_t yyscanner,char *buf,yy_size_t max_size);
 
@@ -133,12 +133,12 @@ string      \"([^"&]|{esc})*\"|\'([^'&]|{esc})*\'
                         codify(yyscanner,yytext);
                     }
 <INITIAL>{name}     {
-                        startFontClass(yyscanner,"keyword");
+                        startFontClass(yyscanner,FontClass::keyword);
                         codify(yyscanner,yytext);
                         endFontClass(yyscanner);
                     }
 <INITIAL>{string}   {
-                        startFontClass(yyscanner,"stringliteral");
+                        startFontClass(yyscanner,FontClass::stringliteral);
                         codifyLines(yyscanner,yytext);
                         endFontClass(yyscanner);
                     }
@@ -150,7 +150,7 @@ string      \"([^"&]|{esc})*\"|\'([^'&]|{esc})*\'
 
                         // Then write the rest
                         yytext++;
-                        startFontClass(yyscanner,"keywordtype");
+                        startFontClass(yyscanner,FontClass::keywordtype);
                         codify(yyscanner,yytext);
                         endFontClass(yyscanner);
 
@@ -165,7 +165,7 @@ string      \"([^"&]|{esc})*\"|\'([^'&]|{esc})*\'
                         // Then write the rest
                         yytext++; // skip the '<'
                         yytext++; // skip the '/'
-                        startFontClass(yyscanner,"keywordtype");
+                        startFontClass(yyscanner,FontClass::keywordtype);
                         codify(yyscanner,yytext);
                         endFontClass(yyscanner);
 
@@ -176,7 +176,7 @@ string      \"([^"&]|{esc})*\"|\'([^'&]|{esc})*\'
                         // yytext++; // <
                         // *yytext = '<'; // replace '!' with '<'
 
-                        startFontClass(yyscanner,"comment");
+                        startFontClass(yyscanner,FontClass::comment);
                         codifyLines(yyscanner,yytext);
                         endFontClass(yyscanner);
                     }
@@ -272,7 +272,7 @@ static void startCodeLine(yyscan_t yyscanner)
 
   yyextra->code->startCodeLine(yyextra->sourceFileDef);
 
-  if (yyextra->currentFontClass)
+  if (yyextra->currentFontClass != FontClass::none)
   {
     yyextra->code->startFontClass(yyextra->currentFontClass);
   }
@@ -281,10 +281,10 @@ static void startCodeLine(yyscan_t yyscanner)
 static void endFontClass(yyscan_t yyscanner)
 {
   struct yyguts_t *yyg = (struct yyguts_t*)yyscanner;
-  if (yyextra->currentFontClass)
+  if (yyextra->currentFontClass != FontClass::none)
   {
     yyextra->code->endFontClass();
-    yyextra->currentFontClass=0;
+    yyextra->currentFontClass=FontClass::none;
   }
 }
 
@@ -298,7 +298,7 @@ static void endCodeLine(yyscan_t yyscanner)
 static void nextCodeLine(yyscan_t yyscanner)
 {
   struct yyguts_t *yyg = (struct yyguts_t*)yyscanner;
-  const char *fc = yyextra->currentFontClass;
+  const FontClass fc = yyextra->currentFontClass;
   endCodeLine(yyscanner);
   if (yyextra->yyLineNr<yyextra->inputLines)
   {
@@ -336,7 +336,7 @@ static void codifyLines(yyscan_t yyscanner,const char *text)
   }
 }
 
-static void startFontClass(yyscan_t yyscanner,const char *s)
+static void startFontClass(yyscan_t yyscanner,const FontClass s)
 {
   struct yyguts_t *yyg = (struct yyguts_t*)yyscanner;
   endFontClass(yyscanner);
@@ -420,7 +420,7 @@ void XMLCodeParser::parseCode(CodeOutputInterface &codeOutIntf,
   yyextra->code = &codeOutIntf;
   yyextra->inputString   = input.data();
   yyextra->inputPosition = 0;
-  yyextra->currentFontClass = 0;
+  yyextra->currentFontClass = FontClass::none;
   yyextra->needsTermination = false;
   yyextra->searchCtx = searchCtx;
 

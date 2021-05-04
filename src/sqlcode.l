@@ -63,8 +63,8 @@ struct sqlcodeYY_state
      const FileDef    *sourceFileDef;
      const Definition *currentDefinition;
      const MemberDef  *currentMemberDef;
-     bool          includeCodeFragment;
-     const char   *currentFontClass;
+     bool             includeCodeFragment;
+     FontClass        currentFontClass;
 };
 
 #if USE_STATE2STRING
@@ -77,7 +77,7 @@ static void endFontClass(yyscan_t yyscanner);
 static void endCodeLine(yyscan_t yyscanner);
 static void nextCodeLine(yyscan_t yyscanner);
 static void codifyLines(yyscan_t yyscanner,const char *text);
-static void startFontClass(yyscan_t yyscanner,const char *s);
+static void startFontClass(yyscan_t yyscanner,const FontClass s);
 static int countLines(yyscan_t yyscanner);
 static yy_size_t yyread(yyscan_t yyscanner,char *buf,yy_size_t max_size);
 
@@ -126,44 +126,44 @@ commentclose    "\*\/"
 %%
 
 {literals}          {
-                        startFontClass(yyscanner,"stringliteral");
+                        startFontClass(yyscanner,FontClass::stringliteral);
                         codifyLines(yyscanner,yytext);
                         endFontClass(yyscanner);
                     }
 
 
 {keyword}           {
-                        startFontClass(yyscanner,"keyword");
+                        startFontClass(yyscanner,FontClass::keyword);
                         codifyLines(yyscanner,yytext);
                         endFontClass(yyscanner);
                     }
 
 {flowkeyword}       {
-                        startFontClass(yyscanner,"keywordflow");
+                        startFontClass(yyscanner,FontClass::keywordflow);
                         codifyLines(yyscanner,yytext);
                         endFontClass(yyscanner);
                     }
 
 {typekeyword}       {
-                        startFontClass(yyscanner,"keywordtype");
+                        startFontClass(yyscanner,FontClass::keywordtype);
                         codifyLines(yyscanner,yytext);
                         endFontClass(yyscanner);
                     }
 
 {variable}          {
-                        startFontClass(yyscanner,"preprocessor");
+                        startFontClass(yyscanner,FontClass::preprocessor);
                         codifyLines(yyscanner,yytext);
                         endFontClass(yyscanner);
                     }
 
 {simplecomment}     {
-                        startFontClass(yyscanner,"comment");
+                        startFontClass(yyscanner,FontClass::comment);
                         codifyLines(yyscanner,yytext);
                         endFontClass(yyscanner);
                     }
 
 {commentopen}       {
-                        startFontClass(yyscanner,"comment");
+                        startFontClass(yyscanner,FontClass::comment);
                         codifyLines(yyscanner,yytext);
                         BEGIN(COMMENT);
                     }
@@ -257,7 +257,7 @@ static void startCodeLine(yyscan_t yyscanner)
 
   yyextra->code->startCodeLine(yyextra->sourceFileDef);
 
-  if (yyextra->currentFontClass)
+  if (yyextra->currentFontClass != FontClass::none)
   {
     yyextra->code->startFontClass(yyextra->currentFontClass);
   }
@@ -266,10 +266,10 @@ static void startCodeLine(yyscan_t yyscanner)
 static void endFontClass(yyscan_t yyscanner)
 {
   struct yyguts_t *yyg = (struct yyguts_t*)yyscanner;
-  if (yyextra->currentFontClass)
+  if (yyextra->currentFontClass != FontClass::none)
   {
     yyextra->code->endFontClass();
-    yyextra->currentFontClass=0;
+    yyextra->currentFontClass=FontClass::none;
   }
 }
 
@@ -283,7 +283,7 @@ static void endCodeLine(yyscan_t yyscanner)
 static void nextCodeLine(yyscan_t yyscanner)
 {
   struct yyguts_t *yyg = (struct yyguts_t*)yyscanner;
-  const char *fc = yyextra->currentFontClass;
+  const FontClass fc = yyextra->currentFontClass;
   endCodeLine(yyscanner);
   if (yyextra->yyLineNr<yyextra->inputLines)
   {
@@ -321,7 +321,7 @@ static void codifyLines(yyscan_t yyscanner,const char *text)
   }
 }
 
-static void startFontClass(yyscan_t yyscanner,const char *s)
+static void startFontClass(yyscan_t yyscanner,const FontClass s)
 {
   struct yyguts_t *yyg = (struct yyguts_t*)yyscanner;
   endFontClass(yyscanner);
@@ -421,7 +421,7 @@ void SQLCodeParser::parseCode(CodeOutputInterface &codeOutIntf,
   yyextra->code = &codeOutIntf;
   yyextra->inputString   = input.data();
   yyextra->inputPosition = 0;
-  yyextra->currentFontClass = 0;
+  yyextra->currentFontClass = FontClass::none;
   yyextra->needsTermination = false;
   yyextra->searchCtx=searchCtx;
 

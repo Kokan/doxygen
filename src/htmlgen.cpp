@@ -870,7 +870,7 @@ void HtmlCodeGenerator::endCodeLine()
   }
 }
 
-void HtmlCodeGenerator::startFontClass(const QCString &s)
+void HtmlCodeGenerator::startFontClass(const FontClass &s)
 {
   m_t << "<span class=\"" << s << "\">";
 }

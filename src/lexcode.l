@@ -80,7 +80,7 @@ struct lexcodeYY_state
      const Definition *currentDefinition;
      const MemberDef  *currentMemberDef;
      bool          includeCodeFragment;
-     const char   *currentFontClass;
+     FontClass     currentFontClass;
 };
 
 #if USE_STATE2STRING
@@ -93,7 +93,7 @@ static void endFontClass(yyscan_t yyscanner);
 static void endCodeLine(yyscan_t yyscanner);
 static void nextCodeLine(yyscan_t yyscanner);
 static void codifyLines(yyscan_t yyscanner,const QCString &text);
-static void startFontClass(yyscan_t yyscanner,const char *s);
+static void startFontClass(yyscan_t yyscanner,const FontClass s);
 static int countLines(yyscan_t yyscanner);
 static yy_size_t yyread(yyscan_t yyscanner,char *buf,yy_size_t max_size);
 static void lineCount(yyscan_t yyscanner);
@@ -362,7 +362,7 @@ NONLopt [^\n]*
                            yyextra->rulesPatternBuffer += yytext;
                            if (!yyextra->rulesPatternBuffer.isEmpty())
                            {
-                             startFontClass(yyscanner,"stringliteral");
+                             startFontClass(yyscanner,FontClass::stringliteral);
                              codifyLines(yyscanner,yyextra->rulesPatternBuffer.data());
                              yyextra->rulesPatternBuffer.resize(0);
                              endFontClass(yyscanner);
@@ -417,7 +417,7 @@ NONLopt [^\n]*
 <RulesPattern>{ws}+"|"  {
                            if (!yyextra->rulesPatternBuffer.isEmpty())
                            {
-                             startFontClass(yyscanner,"stringliteral");
+                             startFontClass(yyscanner,FontClass::stringliteral);
                              codifyLines(yyscanner,yyextra->rulesPatternBuffer);
                              yyextra->rulesPatternBuffer.resize(0);
                              endFontClass(yyscanner);
@@ -437,7 +437,7 @@ NONLopt [^\n]*
                            unput(*yytext);
                            if (!yyextra->rulesPatternBuffer.isEmpty())
                            {
-                             startFontClass(yyscanner,"stringliteral");
+                             startFontClass(yyscanner,FontClass::stringliteral);
                              codifyLines(yyscanner,yyextra->rulesPatternBuffer);
                              yyextra->rulesPatternBuffer.resize(0);
                              endFontClass(yyscanner);
@@ -452,7 +452,7 @@ NONLopt [^\n]*
 <RulesPattern>{CCS}       {
                            if (!yyextra->rulesPatternBuffer.isEmpty())
                            {
-                             startFontClass(yyscanner,"stringliteral");
+                             startFontClass(yyscanner,FontClass::stringliteral);
                              codifyLines(yyscanner,yyextra->rulesPatternBuffer);
                              yyextra->rulesPatternBuffer.resize(0);
                              endFontClass(yyscanner);
@@ -982,7 +982,7 @@ static void startCodeLine(yyscan_t yyscanner)
 
   yyextra->code->startCodeLine(yyextra->sourceFileDef && yyextra->lineNumbers);
 
-  if (yyextra->currentFontClass)
+  if (yyextra->currentFontClass != FontClass::none)
   {
     yyextra->code->startFontClass(yyextra->currentFontClass);
   }
@@ -991,10 +991,10 @@ static void startCodeLine(yyscan_t yyscanner)
 static void endFontClass(yyscan_t yyscanner)
 {
   struct yyguts_t *yyg = (struct yyguts_t*)yyscanner;
-  if (yyextra->currentFontClass)
+  if (yyextra->currentFontClass != FontClass::none)
   {
     yyextra->code->endFontClass();
-    yyextra->currentFontClass=0;
+    yyextra->currentFontClass=FontClass::none;
   }
 }
 
@@ -1008,7 +1008,7 @@ static void endCodeLine(yyscan_t yyscanner)
 static void nextCodeLine(yyscan_t yyscanner)
 {
   struct yyguts_t *yyg = (struct yyguts_t*)yyscanner;
-  const char *fc = yyextra->currentFontClass;
+  const FontClass fc = yyextra->currentFontClass;
   endCodeLine(yyscanner);
   if (yyextra->yyLineNr<yyextra->inputLines)
   {
@@ -1056,11 +1056,11 @@ static void codifyLines(yyscan_t yyscanner,const QCString &text)
   yyextra->startCCodeLine = yyextra->yyLineNr;
 }
 
-static void startFontClass(yyscan_t yyscanner,const char *s)
+static void startFontClass(yyscan_t yyscanner,const FontClass s)
 {
   struct yyguts_t *yyg = (struct yyguts_t*)yyscanner;
   endFontClass(yyscanner);
-  if (!yyextra->currentFontClass || !s || strcmp(yyextra->currentFontClass,s))
+  if (yyextra->currentFontClass == FontClass::none || yyextra->currentFontClass==s)
   {
     endFontClass(yyscanner);
     yyextra->code->startFontClass(s);
@@ -1200,7 +1200,7 @@ void LexCodeParser::parseCode(CodeOutputInterface &codeOutIntf,
   yyextra->code = &codeOutIntf;
   yyextra->inputString   = input.data();
   yyextra->inputPosition = 0;
-  yyextra->currentFontClass = 0;
+  yyextra->currentFontClass = FontClass::none;
   yyextra->needsTermination = false;
 
   yyextra->classScope=scopeName;

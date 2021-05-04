@@ -41,7 +41,7 @@ class DocbookCodeGenerator : public CodeOutputInterface
                      );
     void startCodeLine(bool);
     void endCodeLine();
-    void startFontClass(const QCString &colorClass);
+    void startFontClass(const FontClass &colorClass);
     void endFontClass();
     void writeCodeAnchor(const QCString &);
     void writeLineNumber(const QCString &extRef,const QCString &compId,
@@ -119,7 +119,7 @@ class DocbookGenerator : public OutputGenerator
     { m_codeGen.startCodeLine(hasLineNumbers); }
     void endCodeLine()
     { m_codeGen.endCodeLine(); }
-    void startFontClass(const QCString &s)
+    void startFontClass(const FontClass &s)
     { m_codeGen.startFontClass(s); }
     void endFontClass()
     { m_codeGen.endFontClass(); }

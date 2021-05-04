@@ -200,7 +200,7 @@ void DocbookCodeGenerator::endCodeLine()
   m_insideCodeLine=FALSE;
 }
 
-void DocbookCodeGenerator::startFontClass(const QCString &colorClass)
+void DocbookCodeGenerator::startFontClass(const FontClass &colorClass)
 {
   Docbook_DB(("(startFontClass)\n"));
   m_t << "<emphasis role=\"" << colorClass << "\">";

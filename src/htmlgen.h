@@ -40,7 +40,7 @@ class HtmlCodeGenerator : public CodeOutputInterface
     void writeLineNumber(const QCString &,const QCString &,const QCString &,int);
     void startCodeLine(bool);
     void endCodeLine();
-    void startFontClass(const QCString &s);
+    void startFontClass(const FontClass &s);
     void endFontClass();
     void writeCodeAnchor(const QCString &anchor);
     void setCurrentDoc(const Definition *,const QCString &,bool) {}
@@ -101,7 +101,7 @@ class HtmlGenerator : public OutputGenerator
     { m_codeGen.startCodeLine(hasLineNumbers); }
     void endCodeLine()
     { m_codeGen.endCodeLine(); }
-    void startFontClass(const QCString &s)
+    void startFontClass(const FontClass &s)
     { m_codeGen.startFontClass(s); }
     void endFontClass()
     { m_codeGen.endFontClass(); }

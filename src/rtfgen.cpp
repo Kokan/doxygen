@@ -3087,21 +3087,20 @@ void RTFGenerator::endLabels()
 {
 }
 
-void RTFGenerator::startFontClass(const QCString &name)
+void RTFGenerator::startFontClass(const FontClass &name)
 {
   int cod = 2;
-  QCString qname(name);
-  if (qname == "keyword")            cod = 17;
-  else if (qname == "keywordtype")   cod = 18;
-  else if (qname == "keywordflow")   cod = 19;
-  else if (qname == "comment")       cod = 20;
-  else if (qname == "preprocessor")  cod = 21;
-  else if (qname == "stringliteral") cod = 22;
-  else if (qname == "charliteral")   cod = 23;
-  else if (qname == "vhdldigit")     cod = 24;
-  else if (qname == "vhdlchar")      cod = 25;
-  else if (qname == "vhdlkeyword")   cod = 26;
-  else if (qname == "vhdllogic")     cod = 27;
+  if (name == FontClass::keyword)            cod = 17;
+  else if (name == FontClass::keywordtype)   cod = 18;
+  else if (name == FontClass::keywordflow)   cod = 19;
+  else if (name == FontClass::comment)       cod = 20;
+  else if (name == FontClass::preprocessor)  cod = 21;
+  else if (name == FontClass::stringliteral) cod = 22;
+  else if (name == FontClass::charliteral)   cod = 23;
+  else if (name == FontClass::vhdldigit)     cod = 24;
+  else if (name == FontClass::vhdlchar)      cod = 25;
+  else if (name == FontClass::vhdlkeyword)   cod = 26;
+  else if (name == FontClass::vhdllogic)     cod = 27;
   m_t << "{\\cf" << cod << " ";
 }
 

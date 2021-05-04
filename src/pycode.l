@@ -74,7 +74,7 @@ struct pycodeYY_state
   CodeOutputInterface * code = 0;
   const char *  inputString = 0;     //!< the code fragment as text
   yy_size_t     inputPosition = 0;   //!< read offset during parsing
-  const char *  currentFontClass = 0;
+  FontClass     currentFontClass = FontClass::none;
   bool          needsTermination = FALSE;
   const Definition *searchCtx = 0;
   bool          collectXRefs = FALSE;
@@ -124,7 +124,7 @@ static void codify(yyscan_t yyscanner,const QCString &text);
 static void endCodeLine(yyscan_t yyscanner);
 static void nextCodeLine(yyscan_t yyscanner);
 static void writeMultiLineCodeLink(yyscan_t yyscanner, CodeOutputInterface &ol, const Definition *d, const QCString &text);
-static void startFontClass(yyscan_t yyscanner,const char *s);
+static void startFontClass(yyscan_t yyscanner,const FontClass s);
 static void endFontClass(yyscan_t yyscanner);
 static void codifyLines(yyscan_t yyscanner,const QCString &text);
 static bool getLinkInScope(yyscan_t yyscanner, const QCString &c, const QCString &m,
@@ -297,26 +297,26 @@ TARGET            ({IDENTIFIER}|"("{TARGET_LIST}")"|"["{TARGET_LIST}"]"|{ATTRIBU
 
 <Body,Suite>{
       "def"{BB}                     {
-                                      startFontClass(yyscanner,"keyword");
+                                      startFontClass(yyscanner,FontClass::keyword);
                                       codify(yyscanner,yytext);
                                       endFontClass(yyscanner);
                                       BEGIN( FunctionDec );
                                     }
       "async"{BB}"def"{BB}          {
-                                      startFontClass(yyscanner,"keyword");
+                                      startFontClass(yyscanner,FontClass::keyword);
                                       codify(yyscanner,yytext);
                                       endFontClass(yyscanner);
                                       BEGIN( FunctionDec );
                                     }
 
       "class"{BB}                   {
-                                      startFontClass(yyscanner,"keyword");
+                                      startFontClass(yyscanner,FontClass::keyword);
                                       codify(yyscanner,yytext);
                                       endFontClass(yyscanner);
                                       BEGIN( ClassDec );
                                     }
       "None"                        {
-                                      startFontClass(yyscanner,"keywordtype");
+                                      startFontClass(yyscanner,FontClass::keywordtype);
                                       codify(yyscanner,yytext);
                                       endFontClass(yyscanner);
                                     }
@@ -353,7 +353,7 @@ TARGET            ({IDENTIFIER}|"("{TARGET_LIST}")"|"["{TARGET_LIST}"]"|{ATTRIBU
                                       findMemberLink(yyscanner,*yyextra->code,&yytext[4]);
                                     }
       "@"{SCOPE}{CALLANY}?          { // decorator
-                                      startFontClass(yyscanner,"preprocessor");
+                                      startFontClass(yyscanner,FontClass::preprocessor);
                                       codify(yyscanner,yytext);
                                       endFontClass(yyscanner);
                                     }
@@ -484,7 +484,7 @@ TARGET            ({IDENTIFIER}|"("{TARGET_LIST}")"|"["{TARGET_LIST}"]"|{ATTRIBU
                                       // Must come BEFORE identifier NONEMPTY-like rules
                                       //   to syntax highlight.
 
-                                      startFontClass(yyscanner,"keyword");
+                                      startFontClass(yyscanner,FontClass::keyword);
                                       codify(yyscanner,yytext);
                                       endFontClass(yyscanner);
                                     }
@@ -499,7 +499,7 @@ TARGET            ({IDENTIFIER}|"("{TARGET_LIST}")"|"["{TARGET_LIST}"]"|{ATTRIBU
                                           mdm->incrementFlowKeyWordCount();
                                         }
                                       }
-                                      startFontClass(yyscanner,"keywordflow");
+                                      startFontClass(yyscanner,FontClass::keywordflow);
                                       codify(yyscanner,yytext);
                                       endFontClass(yyscanner);
                                     }
@@ -521,13 +521,13 @@ TARGET            ({IDENTIFIER}|"("{TARGET_LIST}")"|"["{TARGET_LIST}"]"|{ATTRIBU
                                       codify(yyscanner,yytext);
                                     }
     "pass"                          {
-                                      startFontClass(yyscanner,"keyword");
+                                      startFontClass(yyscanner,FontClass::keyword);
                                       codifyLines(yyscanner,yytext);
                                       endFontClass(yyscanner);
                                       BEGIN(Body);
                                     }
     {KEYWORD}                       {
-                                      startFontClass(yyscanner,"keyword");
+                                      startFontClass(yyscanner,FontClass::keyword);
                                       codifyLines(yyscanner,yytext);
                                       endFontClass(yyscanner);
 
@@ -545,7 +545,7 @@ TARGET            ({IDENTIFIER}|"("{TARGET_LIST}")"|"["{TARGET_LIST}"]"|{ATTRIBU
                                           mdm->incrementFlowKeyWordCount();
                                         }
                                       }
-                                      startFontClass(yyscanner,"keywordflow");
+                                      startFontClass(yyscanner,FontClass::keywordflow);
                                       codifyLines(yyscanner,yytext);
                                       endFontClass(yyscanner);
 
@@ -708,7 +708,7 @@ TARGET            ({IDENTIFIER}|"("{TARGET_LIST}")"|"["{TARGET_LIST}"]"|{ATTRIBU
 
 <*>{STRINGPREFIX}?{TRISINGLEQUOTE}  {
                                       if (YY_START==SingleQuoteString) REJECT;
-                                      startFontClass(yyscanner,"stringliteral");
+                                      startFontClass(yyscanner,FontClass::stringliteral);
                                       yyextra->stringContext=YY_START;
                                       yyextra->doubleQuote=yytext[yyleng-1]=='"';
                                       codify(yyscanner,yytext);
@@ -716,7 +716,7 @@ TARGET            ({IDENTIFIER}|"("{TARGET_LIST}")"|"["{TARGET_LIST}"]"|{ATTRIBU
                                     }
 <*>{STRINGPREFIX}?{TRIDOUBLEQUOTE}  {
                                       if (YY_START==DoubleQuoteString) REJECT;
-                                      startFontClass(yyscanner,"stringliteral");
+                                      startFontClass(yyscanner,FontClass::stringliteral);
                                       yyextra->stringContext=YY_START;
                                       yyextra->doubleQuote=yytext[yyleng-1]=='"';
                                       codify(yyscanner,yytext);
@@ -729,7 +729,7 @@ TARGET            ({IDENTIFIER}|"("{TARGET_LIST}")"|"["{TARGET_LIST}"]"|{ATTRIBU
                                       {
                                         REJECT;
                                       }
-                                      startFontClass(yyscanner,"stringliteral");
+                                      startFontClass(yyscanner,FontClass::stringliteral);
                                       yyextra->stringContext=YY_START;
                                       codify(yyscanner,yytext);
                                       BEGIN(SingleQuoteString);
@@ -741,7 +741,7 @@ TARGET            ({IDENTIFIER}|"("{TARGET_LIST}")"|"["{TARGET_LIST}"]"|{ATTRIBU
                                       {
                                         REJECT;
                                       }
-                                      startFontClass(yyscanner,"stringliteral");
+                                      startFontClass(yyscanner,FontClass::stringliteral);
                                       yyextra->stringContext=YY_START;
                                       codify(yyscanner,yytext);
                                       BEGIN(DoubleQuoteString);
@@ -761,7 +761,7 @@ TARGET            ({IDENTIFIER}|"("{TARGET_LIST}")"|"["{TARGET_LIST}"]"|{ATTRIBU
                                       }
                                       else // do not remove comment
                                       {
-                                        startFontClass(yyscanner,"comment");
+                                        startFontClass(yyscanner,FontClass::comment);
                                         codifyLines(yyscanner,yyextra->docBlock);
                                         endFontClass(yyscanner);
                                       }
@@ -786,7 +786,7 @@ TARGET            ({IDENTIFIER}|"("{TARGET_LIST}")"|"["{TARGET_LIST}"]"|{ATTRIBU
                                       {
                                         REJECT;
                                       }
-                                      startFontClass(yyscanner,"comment");
+                                      startFontClass(yyscanner,FontClass::comment);
                                       codifyLines(yyscanner,yytext);
                                       endFontClass(yyscanner);
                                     }
@@ -820,7 +820,7 @@ TARGET            ({IDENTIFIER}|"("{TARGET_LIST}")"|"["{TARGET_LIST}"]"|{ATTRIBU
 <*><<EOF>>                        {
                                     if (YY_START==DocBlock && !Config_getBool(STRIP_CODE_COMMENTS))
                                     {
-                                      startFontClass(yyscanner,"comment");
+                                      startFontClass(yyscanner,FontClass::comment);
                                       codifyLines(yyscanner,yyextra->docBlock);
                                       endFontClass(yyscanner);
                                     }
@@ -1053,7 +1053,7 @@ static void startCodeLine(yyscan_t yyscanner)
     //yyextra->code->endLineNumber();
   }
   yyextra->code->startCodeLine(yyextra->sourceFileDef);
-  if (yyextra->currentFontClass)
+  if (yyextra->currentFontClass != FontClass::none)
   {
     yyextra->code->startFontClass(yyextra->currentFontClass);
   }
@@ -1081,7 +1081,7 @@ static void endCodeLine(yyscan_t yyscanner)
 static void nextCodeLine(yyscan_t yyscanner)
 {
   struct yyguts_t *yyg = (struct yyguts_t*)yyscanner;
-  const char *fc = yyextra->currentFontClass;
+  const FontClass fc = yyextra->currentFontClass;
   endCodeLine(yyscanner);
   if (yyextra->yyLineNr<yyextra->inputLines)
   {
@@ -1138,12 +1138,12 @@ static void writeMultiLineCodeLink(yyscan_t yyscanner,
 
 //-------------------------------------------------------------------------------
 
-static void startFontClass(yyscan_t yyscanner,const char *s)
+static void startFontClass(yyscan_t yyscanner,const FontClass s)
 {
   struct yyguts_t *yyg = (struct yyguts_t*)yyscanner;
   // if font class is already set don't stop and start it.
   // strcmp does not like null pointers as input.
-  if (!yyextra->currentFontClass || !s || strcmp(yyextra->currentFontClass,s))
+  if (yyextra->currentFontClass != FontClass::none || yyextra->currentFontClass != s)
   {
     endFontClass(yyscanner);
     yyextra->code->startFontClass(s);
@@ -1156,10 +1156,10 @@ static void startFontClass(yyscan_t yyscanner,const char *s)
 static void endFontClass(yyscan_t yyscanner)
 {
   struct yyguts_t *yyg = (struct yyguts_t*)yyscanner;
-  if (yyextra->currentFontClass)
+  if (yyextra->currentFontClass != FontClass::none)
   {
     yyextra->code->endFontClass();
-    yyextra->currentFontClass=0;
+    yyextra->currentFontClass=FontClass::none;
   }
 }
 
@@ -1584,7 +1584,7 @@ void PythonCodeParser::parseCode(CodeOutputInterface &codeOutIntf,
   yyextra->code = &codeOutIntf;
   yyextra->inputString   = input.data();
   yyextra->inputPosition = 0;
-  yyextra->currentFontClass = 0;
+  yyextra->currentFontClass = FontClass::none;
   yyextra->needsTermination = FALSE;
   yyextra->searchCtx=searchCtx;
   yyextra->collectXRefs=collectXRefs;

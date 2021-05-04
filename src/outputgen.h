@@ -26,6 +26,7 @@
 #include "index.h"
 #include "section.h"
 #include "textstream.h"
+#include "types.h"
 
 class ClassDiagram;
 class DotClassGraph;
@@ -37,6 +38,8 @@ class DotGroupCollaboration;
 class DocNode;
 class MemberDef;
 class Definition;
+
+TextStream& operator<<(TextStream& out, const FontClass &);
 
 struct DocLinkInfo
 {
@@ -118,7 +121,7 @@ class CodeOutputInterface
      *  which elements of the same type are rendered using the same 'font class'.
      *  \param clsName The category name.
      */
-    virtual void startFontClass(const QCString &clsName) = 0;
+    virtual void startFontClass(const FontClass &clsName) = 0;
 
     /*! Ends a block started with startFontClass() */
     virtual void endFontClass() = 0;

@@ -297,7 +297,7 @@ void XMLCodeGenerator::endCodeLine()
   m_external.resize(0);
   m_insideCodeLine=FALSE;
 }
-void XMLCodeGenerator::startFontClass(const QCString &colorClass)
+void XMLCodeGenerator::startFontClass(const FontClass &colorClass)
 {
   XML_DB(("(startFontClass)\n"));
   if (m_insideCodeLine && !m_insideSpecialHL && !m_normalHLNeedStartTag)

@@ -46,7 +46,7 @@ class LatexCodeGenerator : public CodeOutputInterface
     void writeLineNumber(const QCString &,const QCString &,const QCString &,int) override;
     void startCodeLine(bool) override;
     void endCodeLine() override;
-    void startFontClass(const QCString &) override;
+    void startFontClass(const FontClass &) override;
     void endFontClass() override;
     void writeCodeAnchor(const QCString &) override {}
     void setCurrentDoc(const Definition *,const QCString &,bool) override {}
@@ -109,7 +109,7 @@ class LatexGenerator : public OutputGenerator
     { m_codeGen.startCodeLine(hasLineNumbers); }
     void endCodeLine()
     { m_codeGen.endCodeLine(); }
-    void startFontClass(const QCString &s)
+    void startFontClass(const FontClass &s)
     { m_codeGen.startFontClass(s); }
     void endFontClass()
     { m_codeGen.endFontClass(); }

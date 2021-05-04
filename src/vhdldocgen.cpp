@@ -132,9 +132,9 @@ static void writeLink(const MemberDef* mdef,OutputList &ol)
       mdef->name());
 }
 
-static void startFonts(const QCString& q, const char *keyword,OutputList& ol)
+static void startFonts(const QCString& q, const FontClass fc,OutputList& ol)
 {
-  ol.startFontClass(keyword);
+  ol.startFontClass(fc);
   ol.docify(q);
   ol.endFontClass();
 }
@@ -558,25 +558,25 @@ void VhdlDocGen::init()
 /*!
  * returns the color of a keyword
  */
-const char* VhdlDocGen::findKeyWord(const QCString& kw)
+FontClass VhdlDocGen::findKeyWord(const QCString& kw)
 {
   std::string word=kw.lower().str();
 
-  if (word.empty()) return 0;
+  if (word.empty()) return FontClass::none;
 
   if (g_vhdlKeyWordSet0.find(word)!=g_vhdlKeyWordSet0.end())
-    return "keywordflow";
+    return FontClass::keywordflow;
 
   if (g_vhdlKeyWordSet1.find(word)!=g_vhdlKeyWordSet1.end())
-    return "keywordtype";
+    return FontClass::keywordtype;
 
   if (g_vhdlKeyWordSet2.find(word)!=g_vhdlKeyWordSet2.end())
-    return "vhdllogic";
+    return FontClass::vhdllogic;
 
   if (g_vhdlKeyWordSet3.find(word)!=g_vhdlKeyWordSet3.end())
-    return "vhdlkeyword";
+    return FontClass::vhdlkeyword;
 
-  return 0;
+  return FontClass::none;
 }
 
 ClassDef *VhdlDocGen::getClass(const QCString &name)
@@ -1143,15 +1143,15 @@ void VhdlDocGen::writeFormatString(const QCString& s,OutputList&ol,const MemberD
     {
       find=find.left(j);
       buf[0]=temp[j];
-      const char *ss=VhdlDocGen::findKeyWord(find);
+      const FontClass ss=VhdlDocGen::findKeyWord(find);
       bool k=isNumber(find.str()); // is this a number
       if (k)
       {
         ol.docify(" ");
-        startFonts(find,"vhdldigit",ol);
+        startFonts(find,FontClass::vhdldigit,ol);
         ol.docify(" ");
       }
-      else if (j != 0 && ss)
+      else if (j != 0 && ss != FontClass::none)
       {
         startFonts(find,ss,ol);
       }
@@ -1162,7 +1162,7 @@ void VhdlDocGen::writeFormatString(const QCString& s,OutputList&ol,const MemberD
           VhdlDocGen::writeStringLink(mdef,find,ol);
         }
       }
-      startFonts(&buf[0],"vhdlchar",ol);
+      startFonts(&buf[0],FontClass::vhdlchar,ol);
 
       QCString st=temp.remove(0,j+1);
       find=st;
@@ -1172,7 +1172,7 @@ void VhdlDocGen::writeFormatString(const QCString& s,OutputList&ol,const MemberD
         if (ii>1)
         {
           QCString com=find.left(ii+1);
-          startFonts(com,"keyword",ol);
+          startFonts(com,FontClass::keyword,ol);
           temp=find.remove(0,ii+1);
         }
       }
@@ -1185,7 +1185,7 @@ void VhdlDocGen::writeFormatString(const QCString& s,OutputList&ol,const MemberD
   }//if
   else
   {
-    startFonts(find,"vhdlchar",ol);
+    startFonts(find,FontClass::vhdlchar,ol);
   }
   ol.endBold();
 }// writeFormatString
@@ -1283,21 +1283,21 @@ void VhdlDocGen::writeProcedureProto(OutputList& ol,const ArgumentList &al,const
     nn+=": ";
 
     QCString defval = arg.defval;
-    const char *str=VhdlDocGen::findKeyWord(defval);
+    const FontClass str=VhdlDocGen::findKeyWord(defval);
     defval+=" ";
-    if (str)
+    if (str != FontClass::none)
     {
       startFonts(defval,str,ol);
     }
     else
     {
-      startFonts(defval,"vhdlchar",ol); // write type (variable,constant etc.)
+      startFonts(defval,FontClass::vhdlchar,ol); // write type (variable,constant etc.)
     }
 
-    startFonts(nn,"vhdlchar",ol); // write name
+    startFonts(nn,FontClass::vhdlchar,ol); // write name
     if (qstricmp(arg.attrib,arg.type) != 0)
     {
-      startFonts(arg.attrib.lower(),"stringliteral",ol); // write in|out
+      startFonts(arg.attrib.lower(),FontClass::stringliteral,ol); // write in|out
     }
     ol.docify(" ");
     VhdlDocGen::formatString(arg.type,ol,mdef);
@@ -1348,28 +1348,28 @@ void VhdlDocGen::writeFunctionProto(OutputList& ol,const ArgumentList &al,const 
     }
     if (!att.isEmpty())
     {
-      const char *str=VhdlDocGen::findKeyWord(att);
+      const FontClass str=VhdlDocGen::findKeyWord(att);
       att+=" ";
-      if (str)
+      if (str != FontClass::none)
         VhdlDocGen::formatString(att,ol,mdef);
       else
-        startFonts(att,"vhdlchar",ol);
+        startFonts(att,FontClass::vhdlchar,ol);
     }
 
     QCString nn=arg.name;
     nn+=": ";
     QCString ss=arg.type.stripWhiteSpace(); //.lower();
     QCString w=ss.stripWhiteSpace();//.upper();
-    startFonts(nn,"vhdlchar",ol);
-    startFonts("in ","stringliteral",ol);
-    const char *str=VhdlDocGen::findKeyWord(ss);
-    if (str)
+    startFonts(nn,FontClass::vhdlchar,ol);
+    startFonts("in ",FontClass::stringliteral,ol);
+    const FontClass str=VhdlDocGen::findKeyWord(ss);
+    if (str != FontClass::none)
       VhdlDocGen::formatString(w,ol,mdef);
     else
-      startFonts(w,"vhdlchar",ol);
+      startFonts(w,FontClass::vhdlchar,ol);
 
     if (!arg.attrib.isEmpty())
-      startFonts(arg.attrib,"vhdlchar",ol);
+      startFonts(arg.attrib,FontClass::vhdlchar,ol);
 
     sem=TRUE;
     ol.endBold();
@@ -1410,7 +1410,7 @@ void VhdlDocGen::writeProcessProto(OutputList& ol,const ArgumentList &al,const M
       ol.docify(" , ");
     }
     QCString nn=arg.name;
-    // startFonts(nn,"vhdlchar",ol);
+    // startFonts(nn,FontClass::vhdlchar,ol);
     VhdlDocGen::writeFormatString(nn,ol,mdef);
     sem=TRUE;
   }
@@ -1454,7 +1454,7 @@ bool VhdlDocGen::writeFuncProcDocu(
 
     if (VhdlDocGen::isProcedure(md))
     {
-      startFonts(arg.defval,"keywordtype",ol);
+      startFonts(arg.defval,FontClass::keywordtype,ol);
       ol.docify(" ");
     }
     ol.endParameterType();
@@ -1464,11 +1464,11 @@ bool VhdlDocGen::writeFuncProcDocu(
 
     if (VhdlDocGen::isProcedure(md))
     {
-      startFonts(arg.attrib,"stringliteral",ol);
+      startFonts(arg.attrib,FontClass::stringliteral,ol);
     }
     else if (VhdlDocGen::isVhdlFunction(md))
     {
-      startFonts(QCString("in"),"stringliteral",ol);
+      startFonts(QCString("in"),FontClass::stringliteral,ol);
     }
 
     ol.docify(" ");
@@ -1477,7 +1477,7 @@ bool VhdlDocGen::writeFuncProcDocu(
     ol.enable(OutputGenerator::Man);
     if (!VhdlDocGen::isProcess(md))
     {
-     // startFonts(arg.type,"vhdlkeyword",ol);
+     // startFonts(arg.type,FontClass:vhdlkeyword,ol);
 		VhdlDocGen::writeFormatString(arg.type,ol,md);
     }
     ol.disable(OutputGenerator::Man);
@@ -2181,7 +2181,7 @@ void VhdlDocGen::writeStringLink(const MemberDef *mdef,QCString mem, OutputList&
       }
     }
   }
-  startFonts(mem,"vhdlchar",ol);
+  startFonts(mem,FontClass::vhdlchar,ol);
 }// found component
 
 

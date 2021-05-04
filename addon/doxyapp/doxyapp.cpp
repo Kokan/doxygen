@@ -55,7 +55,7 @@ class XRefDummyCodeGenerator : public CodeOutputInterface
                               const SourceLinkInfo &) override {}
     void startCodeLine(bool) override {}
     void endCodeLine() override {}
-    void startFontClass(const QCString &) override {}
+    void startFontClass(const FontClass &) override {}
     void endFontClass() override {}
     void writeCodeAnchor(const QCString &) override {}
     void setCurrentDoc(const Definition *,const QCString &,bool) override {}

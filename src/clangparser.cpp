@@ -92,7 +92,7 @@ static QCString detab(const QCString &s)
   return out.get();
 }
 
-static const char * keywordToType(const char *keyword)
+static FontClass keywordToType(const char *keyword)
 {
   static const StringUnorderedSet flowKeywords({
     "break", "case", "catch", "continue", "default", "do",
@@ -103,9 +103,9 @@ static const char * keywordToType(const char *keyword)
     "bool", "char", "double", "float", "int", "long", "object",
     "short", "signed", "unsigned", "void", "wchar_t", "size_t",
     "boolean", "id", "SEL", "string", "nullptr" });
-  if (flowKeywords.find(keyword)!=flowKeywords.end()) return "keywordflow";
-  if (typeKeywords.find(keyword)!=typeKeywords.end()) return "keywordtype";
-  return "keyword";
+  if (flowKeywords.find(keyword)!=flowKeywords.end()) return FontClass::keywordflow;
+  if (typeKeywords.find(keyword)!=typeKeywords.end()) return FontClass::keywordtype;
+  return FontClass::keyword;
 }
 
 
@@ -532,9 +532,9 @@ void ClangTUParser::writeLineNumber(CodeOutputInterface &ol,const FileDef *fd,ui
 }
 
 void ClangTUParser::codifyLines(CodeOutputInterface &ol,const FileDef *fd,const char *text,
-                        uint &line,uint &column,const char *fontClass)
+                        uint &line,uint &column,const FontClass fontClass)
 {
-  if (fontClass) ol.startFontClass(fontClass);
+  if (fontClass != FontClass::none) ol.startFontClass(fontClass);
   const char *p=text,*sp=p;
   char c;
   bool done=FALSE;
@@ -552,11 +552,11 @@ void ClangTUParser::codifyLines(CodeOutputInterface &ol,const FileDef *fd,const 
       tmp[l]='\0';
       ol.codify(tmp);
       free(tmp);
-      if (fontClass) ol.endFontClass();
+      if (fontClass != FontClass::none) ol.endFontClass();
       ol.endCodeLine();
       ol.startCodeLine(TRUE);
       writeLineNumber(ol,fd,line);
-      if (fontClass) ol.startFontClass(fontClass);
+      if (fontClass != FontClass::none) ol.startFontClass(fontClass);
     }
     else
     {
@@ -564,7 +564,7 @@ void ClangTUParser::codifyLines(CodeOutputInterface &ol,const FileDef *fd,const 
       done=TRUE;
     }
   }
-  if (fontClass) ol.endFontClass();
+  if (fontClass != FontClass::none) ol.endFontClass();
 }
 
 void ClangTUParser::writeMultiLineCodeLink(CodeOutputInterface &ol,
@@ -638,7 +638,7 @@ void ClangTUParser::linkInclude(CodeOutputInterface &ol,const FileDef *fd,
   }
   else
   {
-    codifyLines(ol,ifd,text,line,column,"preprocessor");
+    codifyLines(ol,ifd,text,line,column,FontClass::preprocessor);
   }
 }
 
@@ -785,7 +785,7 @@ void ClangTUParser::writeSources(CodeOutputInterface &ol,const FileDef *fd)
         else
         {
           codifyLines(ol,fd,s,line,column,
-              cursorKind==CXCursor_PreprocessingDirective ? "preprocessor" :
+              cursorKind==CXCursor_PreprocessingDirective ? FontClass::preprocessor :
               keywordToType(s));
         }
         break;
@@ -796,7 +796,7 @@ void ClangTUParser::writeSources(CodeOutputInterface &ol,const FileDef *fd)
         }
         else if (s[0]=='"' || s[0]=='\'')
         {
-          codifyLines(ol,fd,s,line,column,"stringliteral");
+          codifyLines(ol,fd,s,line,column,FontClass::stringliteral);
         }
         else
         {
@@ -804,7 +804,7 @@ void ClangTUParser::writeSources(CodeOutputInterface &ol,const FileDef *fd)
         }
         break;
       case CXToken_Comment:
-        codifyLines(ol,fd,s,line,column,"comment");
+        codifyLines(ol,fd,s,line,column,FontClass::comment);
         break;
       default:  // CXToken_Punctuation or CXToken_Identifier
         if (tokenKind==CXToken_Punctuation)
@@ -815,10 +815,10 @@ void ClangTUParser::writeSources(CodeOutputInterface &ol,const FileDef *fd)
         switch (cursorKind)
         {
           case CXCursor_PreprocessingDirective:
-            codifyLines(ol,fd,s,line,column,"preprocessor");
+            codifyLines(ol,fd,s,line,column,FontClass::preprocessor);
             break;
           case CXCursor_MacroDefinition:
-            codifyLines(ol,fd,s,line,column,"preprocessor");
+            codifyLines(ol,fd,s,line,column,FontClass::preprocessor);
             break;
           case CXCursor_InclusionDirective:
             linkInclude(ol,fd,line,column,s);

@@ -145,7 +145,7 @@ struct fortrancodeYY_state
   bool          isFixedForm = false;
 
   bool          insideBody = false;      //!< inside subprog/program body? => create links
-  const char *  currentFontClass = 0;
+  FontClass     currentFontClass = FontClass::none;
 
   bool          exampleBlock = false;
   QCString      exampleName;
@@ -179,7 +179,7 @@ static bool getFortranTypeDefs(const QCString &tname, const QCString &moduleName
 //----------------------------------------------------------------------------
 
 static void endFontClass(yyscan_t yyscanner);
-static void startFontClass(yyscan_t yyscanner,const char *s);
+static void startFontClass(yyscan_t yyscanner,const FontClass s);
 static void setCurrentDoc(yyscan_t yyscanner,const QCString &anchor);
 static void addToSearchIndex(yyscan_t yyscanner,const QCString &text);
 static void startCodeLine(yyscan_t yyscanner);
@@ -284,7 +284,7 @@ LANGUAGE_BIND_SPEC BIND{BS}"("{BS}C{BS}(,{BS}NAME{BS}"="{BS}"\""(.*)"\""{BS})?")
 
 <Start>{COMMANDS}/{BS}[,( \t\n]           {  // highlight
                                             /* font class is defined e.g. in doxygen.css */
-                                            startFontClass(yyscanner,"keyword");
+                                            startFontClass(yyscanner,FontClass::keyword);
                                             codifyLines(yyscanner,yytext);
                                             endFontClass(yyscanner);
                                           }
@@ -303,40 +303,40 @@ LANGUAGE_BIND_SPEC BIND{BS}"("{BS}C{BS}(,{BS}NAME{BS}"="{BS}"\""(.*)"\""{BS})?")
                                             }
                                           }
                                           /* font class is defined e.g. in doxygen.css */
-                                          startFontClass(yyscanner,"keywordflow");
+                                          startFontClass(yyscanner,FontClass::keywordflow);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                         }
 <Start>{BS}(CASE|CLASS|TYPE){BS_}(IS|DEFAULT) {
-                                          startFontClass(yyscanner,"keywordflow");
+                                          startFontClass(yyscanner,FontClass::keywordflow);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                         }
 <Start>{BS}"end"({BS}{FLOW})/[ \t\n]       { // list is a bit long as not all have possible end
-                                          startFontClass(yyscanner,"keywordflow");
+                                          startFontClass(yyscanner,FontClass::keywordflow);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                         }
 <Start>"implicit"{BS}("none"|{TYPE_SPEC})  {
-                                          startFontClass(yyscanner,"keywordtype");
+                                          startFontClass(yyscanner,FontClass::keywordtype);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                         }
 <Start>^{BS}"namelist"/[/]              {  // Namelist specification
-                                          startFontClass(yyscanner,"keywordtype");
+                                          startFontClass(yyscanner,FontClass::keywordtype);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                         }
  /*-------- use statement -------------------------------------------*/
 <Start>"use"{BS_}                       {
-                                          startFontClass(yyscanner,"keywordtype");
+                                          startFontClass(yyscanner,FontClass::keywordtype);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                           yy_push_state(YY_START,yyscanner);
                                           BEGIN(Use);
                                         }
 <Use>"ONLY"                             { // TODO: rename
-                                          startFontClass(yyscanner,"keywordtype");
+                                          startFontClass(yyscanner,FontClass::keywordtype);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                           yy_push_state(YY_START,yyscanner);
@@ -374,7 +374,7 @@ LANGUAGE_BIND_SPEC BIND{BS}"("{BS}C{BS}(,{BS}NAME{BS}"="{BS}"\""(.*)"\""{BS})?")
                                         }
 <*>"import"{BS}/"\n"                    |
 <*>"import"{BS_}                        {
-                                          startFontClass(yyscanner,"keywordtype");
+                                          startFontClass(yyscanner,FontClass::keywordtype);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                           yy_push_state(YY_START,yyscanner);
@@ -386,14 +386,14 @@ LANGUAGE_BIND_SPEC BIND{BS}"("{BS}C{BS}(,{BS}NAME{BS}"="{BS}"\""(.*)"\""{BS})?")
                                           yyextra->insideBody=FALSE;
                                         }
 <Import>("ONLY"|"NONE"|"ALL")           {
-                                          startFontClass(yyscanner,"keywordtype");
+                                          startFontClass(yyscanner,FontClass::keywordtype);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                         }
  /*-------- fortran module  -----------------------------------------*/
 <Start>("block"{BS}"data"|"program"|"module"|"interface")/{BS_}|({COMMA}{ACCESS_SPEC})|\n {  //
                                           startScope(yyscanner);
-                                          startFontClass(yyscanner,"keyword");
+                                          startFontClass(yyscanner,FontClass::keyword);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                           yy_push_state(YY_START,yyscanner);
@@ -402,20 +402,20 @@ LANGUAGE_BIND_SPEC BIND{BS}"("{BS}C{BS}(,{BS}NAME{BS}"="{BS}"\""(.*)"\""{BS})?")
                                         }
 <Start>("enum")/{BS_}|{BS}{COMMA}{BS}{LANGUAGE_BIND_SPEC}|\n {  //
                                           startScope(yyscanner);
-                                          startFontClass(yyscanner,"keyword");
+                                          startFontClass(yyscanner,FontClass::keyword);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                           yy_push_state(YY_START,yyscanner);
                                           BEGIN(ClassName);
                                         }
 <*>{LANGUAGE_BIND_SPEC}                 {  //
-                                          startFontClass(yyscanner,"keyword");
+                                          startFontClass(yyscanner,FontClass::keyword);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                         }
 <Start>("type")/{BS_}|({COMMA}({ACCESS_SPEC}|ABSTRACT|EXTENDS))|\n {  //
                                           startScope(yyscanner);
-                                          startFontClass(yyscanner,"keyword");
+                                          startFontClass(yyscanner,FontClass::keyword);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                           yy_push_state(YY_START,yyscanner);
@@ -431,7 +431,7 @@ LANGUAGE_BIND_SPEC BIND{BS}"("{BS}C{BS}(,{BS}NAME{BS}"="{BS}"\""(.*)"\""{BS})?")
                                           yy_pop_state(yyscanner);
                                         }
 <ClassName>({ACCESS_SPEC}|ABSTRACT|EXTENDS)/[,:( ] { //| variable declaration
-                                          startFontClass(yyscanner,"keyword");
+                                          startFontClass(yyscanner,FontClass::keyword);
                                           yyextra->code->codify(QCString(yytext));
                                           endFontClass(yyscanner);
                                         }
@@ -451,12 +451,12 @@ LANGUAGE_BIND_SPEC BIND{BS}"("{BS}C{BS}(,{BS}NAME{BS}"="{BS}"\""(.*)"\""{BS})?")
                                         }
  /*-------- subprog definition -------------------------------------*/
 <Start>({PREFIX}{BS_})?{TYPE_SPEC}{BS_}({PREFIX}{BS_})?{BS}/{SUBPROG}{BS_}  {   // TYPE_SPEC is for old function style function result
-                                          startFontClass(yyscanner,"keyword");
+                                          startFontClass(yyscanner,FontClass::keyword);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                         }
 <Start>({PREFIX}{BS_})?{SUBPROG}{BS_}   {  // Fortran subroutine or function found
-                                          startFontClass(yyscanner,"keyword");
+                                          startFontClass(yyscanner,FontClass::keyword);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                           yy_push_state(YY_START,yyscanner);
@@ -468,7 +468,7 @@ LANGUAGE_BIND_SPEC BIND{BS}"("{BS}C{BS}(,{BS}NAME{BS}"="{BS}"\""(.*)"\""{BS})?")
                                           generateLink(yyscanner,*yyextra->code,yytext);
                                         }
 <Subprog>"result"/{BS}"("[^)]*")"       {
-                                          startFontClass(yyscanner,"keyword");
+                                          startFontClass(yyscanner,FontClass::keyword);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                         }
@@ -483,7 +483,7 @@ LANGUAGE_BIND_SPEC BIND{BS}"("{BS}C{BS}(,{BS}NAME{BS}"="{BS}"\""(.*)"\""{BS})?")
 <Start>"end"{BS}("block"{BS}"data"|{SUBPROG}|"module"|"program"|"enum"|"type"|"interface")?{BS}     {  // Fortran subroutine or function ends
                                           //cout << "===> end function " << yytext << endl;
                                           endScope(yyscanner);
-                                          startFontClass(yyscanner,"keyword");
+                                          startFontClass(yyscanner,FontClass::keyword);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                           yy_push_state(YY_START,yyscanner);
@@ -496,7 +496,7 @@ LANGUAGE_BIND_SPEC BIND{BS}"("{BS}C{BS}(,{BS}NAME{BS}"="{BS}"\""(.*)"\""{BS})?")
 <Start>"end"{BS}("block"{BS}"data"|{SUBPROG}|"module"|"program"|"enum"|"type"|"interface"){BS}/(\n|!|;) {  // Fortran subroutine or function ends
                                           //cout << "===> end function " << yytext << endl;
                                           endScope(yyscanner);
-                                          startFontClass(yyscanner,"keyword");
+                                          startFontClass(yyscanner,FontClass::keyword);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                         }
@@ -504,7 +504,7 @@ LANGUAGE_BIND_SPEC BIND{BS}"("{BS}C{BS}(,{BS}NAME{BS}"="{BS}"\""(.*)"\""{BS})?")
 <Start>^{BS}"real"/[,:( ]               { // real is a bit tricky as it is a data type but also a function.
                                           yy_push_state(YY_START,yyscanner);
                                           BEGIN(Declaration);
-                                          startFontClass(yyscanner,"keywordtype");
+                                          startFontClass(yyscanner,FontClass::keywordtype);
                                           yyextra->code->codify(QCString(yytext));
                                           endFontClass(yyscanner);
                                         }
@@ -515,7 +515,7 @@ LANGUAGE_BIND_SPEC BIND{BS}"("{BS}C{BS}(,{BS}NAME{BS}"="{BS}"\""(.*)"\""{BS})?")
                                           if (typ == "type" || typ == "class" || typ == "procedure") yyextra->inTypeDecl = 1;
                                           yy_push_state(YY_START,yyscanner);
                                           BEGIN(Declaration);
-                                          startFontClass(yyscanner,"keywordtype");
+                                          startFontClass(yyscanner,FontClass::keywordtype);
                                           yyextra->code->codify(QCString(yytext));
                                           endFontClass(yyscanner);
                                         }
@@ -526,20 +526,20 @@ LANGUAGE_BIND_SPEC BIND{BS}"("{BS}C{BS}(,{BS}NAME{BS}"="{BS}"\""(.*)"\""{BS})?")
                                             BEGIN(Declaration);
                                             yyextra->isExternal = true;
                                           }
-                                          startFontClass(yyscanner,"keywordtype");
+                                          startFontClass(yyscanner,FontClass::keywordtype);
                                           yyextra->code->codify(QCString(yytext));
                                           endFontClass(yyscanner);
                                         }
 <Declaration>({TYPE_SPEC}|{ATTR_SPEC})/[,:( ] { //| variable declaration
                                           if (QCString(yytext) == "external") yyextra->isExternal = true;
-                                          startFontClass(yyscanner,"keywordtype");
+                                          startFontClass(yyscanner,FontClass::keywordtype);
                                           yyextra->code->codify(QCString(yytext));
                                           endFontClass(yyscanner);
                                         }
 <Declaration>{ID}                       { // local var
                                           if (yyextra->isFixedForm && yy_my_start == 1)
                                           {
-                                            startFontClass(yyscanner,"comment");
+                                            startFontClass(yyscanner,FontClass::comment);
                                             yyextra->code->codify(QCString(yytext));
                                             endFontClass(yyscanner);
                                           }
@@ -613,7 +613,7 @@ LANGUAGE_BIND_SPEC BIND{BS}"("{BS}C{BS}(,{BS}NAME{BS}"="{BS}"\""(.*)"\""{BS})?")
  /*-------- subprog calls  -----------------------------------------*/
 
 <Start>"call"{BS_}                      {
-                                          startFontClass(yyscanner,"keyword");
+                                          startFontClass(yyscanner,FontClass::keyword);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                           yy_push_state(YY_START,yyscanner);
@@ -635,7 +635,7 @@ LANGUAGE_BIND_SPEC BIND{BS}"("{BS}C{BS}(,{BS}NAME{BS}"="{BS}"\""(.*)"\""{BS})?")
                                           {
                                             yy_push_state(YY_START,yyscanner);
                                             BEGIN(Declaration);
-                                            startFontClass(yyscanner,"keywordtype");
+                                            startFontClass(yyscanner,FontClass::keywordtype);
                                             yyextra->code->codify(QCString(yytext).stripWhiteSpace());
                                             endFontClass(yyscanner);
                                             yyextra->code->codify(QCString(yytext + 4));
@@ -693,7 +693,7 @@ LANGUAGE_BIND_SPEC BIND{BS}"("{BS}C{BS}(,{BS}NAME{BS}"="{BS}"\""(.*)"\""{BS})?")
                                           }
                                           else // do not remove comment
                                           {
-                                            startFontClass(yyscanner,"comment");
+                                            startFontClass(yyscanner,FontClass::comment);
                                             codifyLines(yyscanner,yyextra->docBlock);
                                             endFontClass(yyscanner);
                                           }
@@ -706,7 +706,7 @@ LANGUAGE_BIND_SPEC BIND{BS}"("{BS}C{BS}(,{BS}NAME{BS}"="{BS}"\""(.*)"\""{BS})?")
 <*>"!"[^><\n].*|"!"$                    { // normal comment
                                           if(YY_START == String) YY_FTN_REJECT; // ignore in strings
                                           if (yyextra->isFixedForm && yy_my_start == 6) YY_FTN_REJECT;
-                                          startFontClass(yyscanner,"comment");
+                                          startFontClass(yyscanner,FontClass::comment);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                         }
@@ -714,17 +714,17 @@ LANGUAGE_BIND_SPEC BIND{BS}"("{BS}C{BS}(,{BS}NAME{BS}"="{BS}"\""(.*)"\""{BS})?")
 <*>^[Cc*].*                             { // normal comment
                                           if(! yyextra->isFixedForm) YY_FTN_REJECT;
 
-                                          startFontClass(yyscanner,"comment");
+                                          startFontClass(yyscanner,FontClass::comment);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                         }
 <*>"assignment"/{BS}"("{BS}"="{BS}")"   {
-                                          startFontClass(yyscanner,"keyword");
+                                          startFontClass(yyscanner,FontClass::keyword);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                         }
 <*>"operator"/{BS}"("[^)]*")"           {
-                                          startFontClass(yyscanner,"keyword");
+                                          startFontClass(yyscanner,FontClass::keyword);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                         }
@@ -733,7 +733,7 @@ LANGUAGE_BIND_SPEC BIND{BS}"("{BS}C{BS}(,{BS}NAME{BS}"="{BS}"\""(.*)"\""{BS})?")
 <Start>"#".*\n                          {
                                           if (yyextra->isFixedForm && yy_my_start == 6) YY_FTN_REJECT;
                                           yyextra->contLineNr++;
-                                          startFontClass(yyscanner,"preprocessor");
+                                          startFontClass(yyscanner,FontClass::preprocessor);
                                           codifyLines(yyscanner,yytext);
                                           endFontClass(yyscanner);
                                           YY_FTN_RESET
@@ -752,7 +752,7 @@ LANGUAGE_BIND_SPEC BIND{BS}"("{BS}C{BS}(,{BS}NAME{BS}"="{BS}"\""(.*)"\""{BS})?")
 <String>\n                              { // string with \n inside
                                           yyextra->contLineNr++;
                                           yyextra->str+=yytext;
-                                          startFontClass(yyscanner,"stringliteral");
+                                          startFontClass(yyscanner,FontClass::stringliteral);
                                           codifyLines(yyscanner,yyextra->str);
                                           endFontClass(yyscanner);
                                           yyextra->str = "";
@@ -761,7 +761,7 @@ LANGUAGE_BIND_SPEC BIND{BS}"("{BS}C{BS}(,{BS}NAME{BS}"="{BS}"\""(.*)"\""{BS})?")
 <String>\"|\'                           { // string ends with next quote without previous backspace
                                           if(yytext[0]!=yyextra->stringStartSymbol) YY_FTN_REJECT; // single vs double quote
                                           yyextra->str+=yytext;
-                                          startFontClass(yyscanner,"stringliteral");
+                                          startFontClass(yyscanner,FontClass::stringliteral);
                                           codifyLines(yyscanner,yyextra->str);
                                           endFontClass(yyscanner);
                                           yy_pop_state(yyscanner);
@@ -787,7 +787,7 @@ LANGUAGE_BIND_SPEC BIND{BS}"("{BS}C{BS}(,{BS}NAME{BS}"="{BS}"\""(.*)"\""{BS})?")
                                           {
                                             codifyLines(yyscanner,yytext);
                                             // comment cannot extend over the end of a line so should always be terminated at the end of the line.
-                                            if (yyextra->currentFontClass && !strcmp(yyextra->currentFontClass,"comment")) endFontClass(yyscanner);
+                                            if (yyextra->currentFontClass != FontClass::none && yyextra->currentFontClass != FontClass::comment) endFontClass(yyscanner);
                                           }
                                           yyextra->contLineNr++;
                                           YY_FTN_RESET
@@ -797,7 +797,7 @@ LANGUAGE_BIND_SPEC BIND{BS}"("{BS}C{BS}(,{BS}NAME{BS}"="{BS}"\""(.*)"\""{BS})?")
 <*>[\x80-\xFF]*                         { // keep utf8 characters together...
                                           if (yyextra->isFixedForm && yy_my_start > fixedCommentAfter)
                                           {
-                                            startFontClass(yyscanner,"comment");
+                                            startFontClass(yyscanner,FontClass::comment);
                                             codifyLines(yyscanner,yytext);
                                           }
                                           else
@@ -811,7 +811,7 @@ LANGUAGE_BIND_SPEC BIND{BS}"("{BS}C{BS}(,{BS}NAME{BS}"="{BS}"\""(.*)"\""{BS})?")
                                             //yy_push_state(YY_START,yyscanner);
                                             //BEGIN(DocBlock);
                                             //yyextra->docBlock=yytext;
-                                            startFontClass(yyscanner,"comment");
+                                            startFontClass(yyscanner,FontClass::comment);
                                             codifyLines(yyscanner,yytext);
                                           }
                                           else
@@ -826,7 +826,7 @@ LANGUAGE_BIND_SPEC BIND{BS}"("{BS}C{BS}(,{BS}NAME{BS}"="{BS}"\""(.*)"\""{BS})?")
                                           if (YY_START == DocBlock) {
                                             if (!Config_getBool(STRIP_CODE_COMMENTS))
                                             {
-                                              startFontClass(yyscanner,"comment");
+                                              startFontClass(yyscanner,FontClass::comment);
                                               codifyLines(yyscanner,yyextra->docBlock);
                                               endFontClass(yyscanner);
                                             }
@@ -856,22 +856,23 @@ static yy_size_t yyread(yyscan_t yyscanner,char *buf,yy_size_t max_size)
 static void endFontClass(yyscan_t yyscanner)
 {
   struct yyguts_t *yyg = (struct yyguts_t*)yyscanner;
-  if (yyextra->currentFontClass)
+  if (yyextra->currentFontClass != FontClass::none)
   {
     yyextra->code->endFontClass();
-    yyextra->currentFontClass=0;
+    yyextra->currentFontClass=FontClass::none;
   }
 }
 
-static void startFontClass(yyscan_t yyscanner,const char *s)
+static void startFontClass(yyscan_t yyscanner,const FontClass s)
 {
   struct yyguts_t *yyg = (struct yyguts_t*)yyscanner;
   // if font class is already set don't stop and start it.
   // strcmp does not like null pointers as input.
-  if (!yyextra->currentFontClass || !s || strcmp(yyextra->currentFontClass,s))
+  //TODO: check old !s code
+  if (yyextra->currentFontClass == FontClass::none || yyextra->currentFontClass == s)
   {
     endFontClass(yyscanner);
-    yyextra->code->startFontClass(QCString(s));
+    yyextra->code->startFontClass(s);
     yyextra->currentFontClass=s;
   }
 }
@@ -945,9 +946,9 @@ static void startCodeLine(yyscan_t yyscanner)
     }
   }
   yyextra->code->startCodeLine(yyextra->sourceFileDef);
-  if (yyextra->currentFontClass)
+  if (yyextra->currentFontClass != FontClass::none)
   {
-    yyextra->code->startFontClass(QCString(yyextra->currentFontClass));
+    yyextra->code->startFontClass(yyextra->currentFontClass);
   }
 }
 
@@ -962,7 +963,7 @@ static void endCodeLine(yyscan_t yyscanner)
 static void nextCodeLine(yyscan_t yyscanner)
 {
   struct yyguts_t *yyg = (struct yyguts_t*)yyscanner;
-  const char * fc = yyextra->currentFontClass;
+  const FontClass fc = yyextra->currentFontClass;
   endCodeLine(yyscanner);
   if (yyextra->yyLineNr<yyextra->inputLines)
   {
@@ -1423,7 +1424,7 @@ void FortranCodeParser::resetCodeParserState()
   struct yyguts_t *yyg = (struct yyguts_t*)p->yyscanner;
   yyextra->currentDefinition = 0;
   yyextra->currentMemberDef = 0;
-  yyextra->currentFontClass = 0;
+  yyextra->currentFontClass = FontClass::none;
   yyextra->needsTermination = FALSE;
   BEGIN( Start );
 }
@@ -1466,7 +1467,7 @@ void FortranCodeParser::parseCode(CodeOutputInterface & codeOutIntf,
   {
     checkContLines(yyscanner,yyextra->inputString);
   }
-  yyextra->currentFontClass = 0;
+  yyextra->currentFontClass = FontClass::none;
   yyextra->needsTermination = FALSE;
   yyextra->searchCtx = searchCtx;
   yyextra->collectXRefs = collectXRefs;

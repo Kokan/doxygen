@@ -227,7 +227,7 @@ class ManGenerator : public OutputGenerator
     void endParameterList() {}
     void exceptionEntry(const QCString &,bool) {}
 
-    void startFontClass(const QCString &) {}
+    void startFontClass(const FontClass &) {}
     void endFontClass() {}
 
     void startConstraintList(const QCString &);
