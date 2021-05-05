@@ -52,7 +52,7 @@ class ClangTUParser
     void detectFunctionBody(const char *s);
     void writeLineNumber(CodeOutputInterface &ol,const FileDef *fd,uint line);
     void codifyLines(CodeOutputInterface &ol,const FileDef *fd,const char *text,
-                     uint &line,uint &column,const FontClass fontClass=FontClass::none);
+                     uint &line,uint &column,const MaybeFontClass fontClass=std::nullopt);
     void writeMultiLineCodeLink(CodeOutputInterface &ol,
                                 const FileDef *fd,uint &line,uint &column,
                                 const Definition *d, const char *text);

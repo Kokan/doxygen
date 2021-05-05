@@ -77,7 +77,7 @@ struct xmlcodeYY_state
   const Definition *  currentDefinition = 0;
   const MemberDef *   currentMemberDef = 0;
   bool          includeCodeFragment = false;
-  FontClass     currentFontClass = FontClass::none;
+  MaybeFontClass   currentFontClass = std::nullopt;
 };
 
 #if USE_STATE2STRING
@@ -272,19 +272,19 @@ static void startCodeLine(yyscan_t yyscanner)
 
   yyextra->code->startCodeLine(yyextra->sourceFileDef);
 
-  if (yyextra->currentFontClass != FontClass::none)
+  if (yyextra->currentFontClass)
   {
-    yyextra->code->startFontClass(yyextra->currentFontClass);
+    yyextra->code->startFontClass(*yyextra->currentFontClass);
   }
 }
 
 static void endFontClass(yyscan_t yyscanner)
 {
   struct yyguts_t *yyg = (struct yyguts_t*)yyscanner;
-  if (yyextra->currentFontClass != FontClass::none)
+  if (yyextra->currentFontClass)
   {
     yyextra->code->endFontClass();
-    yyextra->currentFontClass=FontClass::none;
+    yyextra->currentFontClass=std::nullopt;
   }
 }
 
@@ -298,7 +298,7 @@ static void endCodeLine(yyscan_t yyscanner)
 static void nextCodeLine(yyscan_t yyscanner)
 {
   struct yyguts_t *yyg = (struct yyguts_t*)yyscanner;
-  const FontClass fc = yyextra->currentFontClass;
+  const MaybeFontClass fc = yyextra->currentFontClass;
   endCodeLine(yyscanner);
   if (yyextra->yyLineNr<yyextra->inputLines)
   {
@@ -420,7 +420,7 @@ void XMLCodeParser::parseCode(CodeOutputInterface &codeOutIntf,
   yyextra->code = &codeOutIntf;
   yyextra->inputString   = input.data();
   yyextra->inputPosition = 0;
-  yyextra->currentFontClass = FontClass::none;
+  yyextra->currentFontClass = std::nullopt;
   yyextra->needsTermination = false;
   yyextra->searchCtx = searchCtx;
 

@@ -103,7 +103,7 @@ struct vhdlcodeYY_state
   const Definition *  currentDefinition = 0;
   const MemberDef *   currentMemberDef = 0;
   bool          includeCodeFragment = false;
-  FontClass     currentFontClass = FontClass::none;
+  MaybeFontClass currentFontClass = std::nullopt;
 
   bool          lexInit = false;
   int           braceCount = 0;
@@ -1051,9 +1051,9 @@ static void startCodeLine(yyscan_t yyscanner)
   }
   yyextra->code->startCodeLine(yyextra->sourceFileDef);
   yyextra->startCode=true;
-  if (yyextra->currentFontClass != FontClass::none)
+  if (yyextra->currentFontClass)
   {
-    yyextra->code->startFontClass(yyextra->currentFontClass);
+    yyextra->code->startFontClass(*yyextra->currentFontClass);
   }
 }
 
@@ -1071,7 +1071,7 @@ static void nextCodeLine(yyscan_t yyscanner)
   {
     endCodeLine(yyscanner);    // </div>
   }
-  const FontClass fc = yyextra->currentFontClass;
+  const MaybeFontClass fc = yyextra->currentFontClass;
   if (yyextra->yyLineNr<yyextra->inputLines)
   {
     yyextra->currentFontClass = fc;
@@ -1394,17 +1394,16 @@ static int countLines(yyscan_t yyscanner)
 static void endFontClass(yyscan_t yyscanner)
 {
   struct yyguts_t *yyg = (struct yyguts_t*)yyscanner;
-  if (yyextra->currentFontClass != FontClass::none)
+  if (yyextra->currentFontClass)
   {
     yyextra->code->endFontClass();
-    yyextra->currentFontClass=FontClass::none;
+    yyextra->currentFontClass=std::nullopt;
   }
 }
 
 static void startFontClass(yyscan_t yyscanner,const FontClass s)
 {
   struct yyguts_t *yyg = (struct yyguts_t*)yyscanner;
-  if (s==FontClass::none) return;
   endFontClass(yyscanner);
   yyextra->code->startFontClass(s);
   yyextra->currentFontClass=s;
@@ -1413,7 +1412,7 @@ static void startFontClass(yyscan_t yyscanner,const FontClass s)
 static void writeFont(yyscan_t yyscanner,const FontClass s,const QCString &text)
 {
   struct yyguts_t *yyg = (struct yyguts_t*)yyscanner;
-  if (s==FontClass::none || text.isEmpty()) return;
+  if (text.isEmpty()) return;
   //printf("writeFont(yyscanner,%d,\"%s\")\n",yyextra->yyLineNr,text);
   yyextra->code->startFontClass(s);
   yyextra->code->codify(text);
@@ -1537,10 +1536,10 @@ static void writeProcessProto(yyscan_t yyscanner)
 static bool writeColoredWord(yyscan_t yyscanner,QCString& word )
 {
   QCString qcs=word.lower();
-  const FontClass ss=VhdlDocGen::findKeyWord(qcs);
-  if (ss != FontClass::none)
+  const MaybeFontClass ss=VhdlDocGen::findKeyWord(qcs);
+  if (ss)
   {
-    writeFont(yyscanner,ss,word);
+    writeFont(yyscanner,*ss,word);
     return true;
   }
   return false;
@@ -1602,7 +1601,7 @@ void VHDLCodeParser::parseCode(CodeOutputInterface &od,
   yyextra->code = &od;
   yyextra->inputString   = s.data();
   yyextra->inputPosition = 0;
-  yyextra->currentFontClass = FontClass::none;
+  yyextra->currentFontClass = std::nullopt;
   yyextra->needsTermination = false;
   yyextra->searchCtx = searchCtx;
 

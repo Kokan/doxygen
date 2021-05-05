@@ -17,6 +17,7 @@
 #define TYPES_H
 
 #include "qcstring.h"
+#include <optional>
 
 /** @file
  *  @brief This file contains a number of basic enums and types.
@@ -24,7 +25,6 @@
 
 /** FontClass **/
 enum class FontClass {
-   none,
    keyword,
    keywordflow,
    keywordtype,
@@ -37,6 +37,8 @@ enum class FontClass {
    vhdldigit,
    preprocessor,
 };
+
+using MaybeFontClass = std::optional<FontClass>;
 
 /** Protection level of members */
 enum Protection   { Public, Protected, Private, Package } ;

@@ -558,25 +558,25 @@ void VhdlDocGen::init()
 /*!
  * returns the color of a keyword
  */
-FontClass VhdlDocGen::findKeyWord(const QCString& kw)
+MaybeFontClass VhdlDocGen::findKeyWord(const QCString& kw)
 {
   std::string word=kw.lower().str();
 
-  if (word.empty()) return FontClass::none;
+  if (word.empty()) return std::nullopt;
 
   if (g_vhdlKeyWordSet0.find(word)!=g_vhdlKeyWordSet0.end())
-    return FontClass::keywordflow;
+    return std::make_optional(FontClass::keywordflow);
 
   if (g_vhdlKeyWordSet1.find(word)!=g_vhdlKeyWordSet1.end())
-    return FontClass::keywordtype;
+    return std::make_optional(FontClass::keywordtype);
 
   if (g_vhdlKeyWordSet2.find(word)!=g_vhdlKeyWordSet2.end())
-    return FontClass::vhdllogic;
+    return std::make_optional(FontClass::vhdllogic);
 
   if (g_vhdlKeyWordSet3.find(word)!=g_vhdlKeyWordSet3.end())
-    return FontClass::vhdlkeyword;
+    return std::make_optional(FontClass::vhdlkeyword);
 
-  return FontClass::none;
+  return std::nullopt;
 }
 
 ClassDef *VhdlDocGen::getClass(const QCString &name)
@@ -1143,7 +1143,7 @@ void VhdlDocGen::writeFormatString(const QCString& s,OutputList&ol,const MemberD
     {
       find=find.left(j);
       buf[0]=temp[j];
-      const FontClass ss=VhdlDocGen::findKeyWord(find);
+      const MaybeFontClass ss=VhdlDocGen::findKeyWord(find);
       bool k=isNumber(find.str()); // is this a number
       if (k)
       {
@@ -1151,9 +1151,9 @@ void VhdlDocGen::writeFormatString(const QCString& s,OutputList&ol,const MemberD
         startFonts(find,FontClass::vhdldigit,ol);
         ol.docify(" ");
       }
-      else if (j != 0 && ss != FontClass::none)
+      else if (j != 0 && ss)
       {
-        startFonts(find,ss,ol);
+        startFonts(find,*ss,ol);
       }
       else
       {
@@ -1283,11 +1283,11 @@ void VhdlDocGen::writeProcedureProto(OutputList& ol,const ArgumentList &al,const
     nn+=": ";
 
     QCString defval = arg.defval;
-    const FontClass str=VhdlDocGen::findKeyWord(defval);
+    const MaybeFontClass str=VhdlDocGen::findKeyWord(defval);
     defval+=" ";
-    if (str != FontClass::none)
+    if (str)
     {
-      startFonts(defval,str,ol);
+      startFonts(defval,*str,ol);
     }
     else
     {
@@ -1348,9 +1348,9 @@ void VhdlDocGen::writeFunctionProto(OutputList& ol,const ArgumentList &al,const 
     }
     if (!att.isEmpty())
     {
-      const FontClass str=VhdlDocGen::findKeyWord(att);
+      const MaybeFontClass str=VhdlDocGen::findKeyWord(att);
       att+=" ";
-      if (str != FontClass::none)
+      if (str)
         VhdlDocGen::formatString(att,ol,mdef);
       else
         startFonts(att,FontClass::vhdlchar,ol);
@@ -1362,8 +1362,8 @@ void VhdlDocGen::writeFunctionProto(OutputList& ol,const ArgumentList &al,const 
     QCString w=ss.stripWhiteSpace();//.upper();
     startFonts(nn,FontClass::vhdlchar,ol);
     startFonts("in ",FontClass::stringliteral,ol);
-    const FontClass str=VhdlDocGen::findKeyWord(ss);
-    if (str != FontClass::none)
+    const MaybeFontClass str=VhdlDocGen::findKeyWord(ss);
+    if (str)
       VhdlDocGen::formatString(w,ol,mdef);
     else
       startFonts(w,FontClass::vhdlchar,ol);

@@ -532,9 +532,9 @@ void ClangTUParser::writeLineNumber(CodeOutputInterface &ol,const FileDef *fd,ui
 }
 
 void ClangTUParser::codifyLines(CodeOutputInterface &ol,const FileDef *fd,const char *text,
-                        uint &line,uint &column,const FontClass fontClass)
+                        uint &line,uint &column,const MaybeFontClass fontClass)
 {
-  if (fontClass != FontClass::none) ol.startFontClass(fontClass);
+  if (fontClass) ol.startFontClass(*fontClass);
   const char *p=text,*sp=p;
   char c;
   bool done=FALSE;
@@ -552,11 +552,11 @@ void ClangTUParser::codifyLines(CodeOutputInterface &ol,const FileDef *fd,const 
       tmp[l]='\0';
       ol.codify(tmp);
       free(tmp);
-      if (fontClass != FontClass::none) ol.endFontClass();
+      if (fontClass) ol.endFontClass();
       ol.endCodeLine();
       ol.startCodeLine(TRUE);
       writeLineNumber(ol,fd,line);
-      if (fontClass != FontClass::none) ol.startFontClass(fontClass);
+      if (fontClass) ol.startFontClass(*fontClass);
     }
     else
     {
@@ -564,7 +564,7 @@ void ClangTUParser::codifyLines(CodeOutputInterface &ol,const FileDef *fd,const 
       done=TRUE;
     }
   }
-  if (fontClass != FontClass::none) ol.endFontClass();
+  if (fontClass) ol.endFontClass();
 }
 
 void ClangTUParser::writeMultiLineCodeLink(CodeOutputInterface &ol,

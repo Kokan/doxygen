@@ -145,7 +145,7 @@ struct fortrancodeYY_state
   bool          isFixedForm = false;
 
   bool          insideBody = false;      //!< inside subprog/program body? => create links
-  FontClass     currentFontClass = FontClass::none;
+  MaybeFontClass currentFontClass = std::nullopt;
 
   bool          exampleBlock = false;
   QCString      exampleName;
@@ -787,7 +787,7 @@ LANGUAGE_BIND_SPEC BIND{BS}"("{BS}C{BS}(,{BS}NAME{BS}"="{BS}"\""(.*)"\""{BS})?")
                                           {
                                             codifyLines(yyscanner,yytext);
                                             // comment cannot extend over the end of a line so should always be terminated at the end of the line.
-                                            if (yyextra->currentFontClass != FontClass::none && yyextra->currentFontClass != FontClass::comment) endFontClass(yyscanner);
+                                            if (yyextra->currentFontClass && yyextra->currentFontClass != FontClass::comment) endFontClass(yyscanner);
                                           }
                                           yyextra->contLineNr++;
                                           YY_FTN_RESET
@@ -856,10 +856,10 @@ static yy_size_t yyread(yyscan_t yyscanner,char *buf,yy_size_t max_size)
 static void endFontClass(yyscan_t yyscanner)
 {
   struct yyguts_t *yyg = (struct yyguts_t*)yyscanner;
-  if (yyextra->currentFontClass != FontClass::none)
+  if (yyextra->currentFontClass)
   {
     yyextra->code->endFontClass();
-    yyextra->currentFontClass=FontClass::none;
+    yyextra->currentFontClass=std::nullopt;
   }
 }
 
@@ -869,7 +869,7 @@ static void startFontClass(yyscan_t yyscanner,const FontClass s)
   // if font class is already set don't stop and start it.
   // strcmp does not like null pointers as input.
   //TODO: check old !s code
-  if (yyextra->currentFontClass == FontClass::none || yyextra->currentFontClass == s)
+  if (!yyextra->currentFontClass || yyextra->currentFontClass == s)
   {
     endFontClass(yyscanner);
     yyextra->code->startFontClass(s);
@@ -946,9 +946,9 @@ static void startCodeLine(yyscan_t yyscanner)
     }
   }
   yyextra->code->startCodeLine(yyextra->sourceFileDef);
-  if (yyextra->currentFontClass != FontClass::none)
+  if (yyextra->currentFontClass)
   {
-    yyextra->code->startFontClass(yyextra->currentFontClass);
+    yyextra->code->startFontClass(*yyextra->currentFontClass);
   }
 }
 
@@ -963,7 +963,7 @@ static void endCodeLine(yyscan_t yyscanner)
 static void nextCodeLine(yyscan_t yyscanner)
 {
   struct yyguts_t *yyg = (struct yyguts_t*)yyscanner;
-  const FontClass fc = yyextra->currentFontClass;
+  const MaybeFontClass fc = yyextra->currentFontClass;
   endCodeLine(yyscanner);
   if (yyextra->yyLineNr<yyextra->inputLines)
   {
@@ -1424,7 +1424,7 @@ void FortranCodeParser::resetCodeParserState()
   struct yyguts_t *yyg = (struct yyguts_t*)p->yyscanner;
   yyextra->currentDefinition = 0;
   yyextra->currentMemberDef = 0;
-  yyextra->currentFontClass = FontClass::none;
+  yyextra->currentFontClass = std::nullopt;
   yyextra->needsTermination = FALSE;
   BEGIN( Start );
 }
@@ -1467,7 +1467,7 @@ void FortranCodeParser::parseCode(CodeOutputInterface & codeOutIntf,
   {
     checkContLines(yyscanner,yyextra->inputString);
   }
-  yyextra->currentFontClass = FontClass::none;
+  yyextra->currentFontClass = std::nullopt;
   yyextra->needsTermination = FALSE;
   yyextra->searchCtx = searchCtx;
   yyextra->collectXRefs = collectXRefs;

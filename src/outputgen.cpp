@@ -28,7 +28,6 @@ TextStream& operator<<(TextStream& out, const FontClass &fc)
 {
   switch (fc)
   {
-    case FontClass::none:          out << "none"; break;
     case FontClass::keyword:       out << "keyword"; break;
     case FontClass::keywordflow:   out << "keywordflow"; break;
     case FontClass::keywordtype:   out << "keywordtype"; break;

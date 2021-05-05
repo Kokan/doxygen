@@ -74,7 +74,7 @@ struct pycodeYY_state
   CodeOutputInterface * code = 0;
   const char *  inputString = 0;     //!< the code fragment as text
   yy_size_t     inputPosition = 0;   //!< read offset during parsing
-  FontClass     currentFontClass = FontClass::none;
+  MaybeFontClass currentFontClass = std::nullopt;
   bool          needsTermination = FALSE;
   const Definition *searchCtx = 0;
   bool          collectXRefs = FALSE;
@@ -1053,9 +1053,9 @@ static void startCodeLine(yyscan_t yyscanner)
     //yyextra->code->endLineNumber();
   }
   yyextra->code->startCodeLine(yyextra->sourceFileDef);
-  if (yyextra->currentFontClass != FontClass::none)
+  if (yyextra->currentFontClass)
   {
-    yyextra->code->startFontClass(yyextra->currentFontClass);
+    yyextra->code->startFontClass(*yyextra->currentFontClass);
   }
 }
 
@@ -1081,7 +1081,7 @@ static void endCodeLine(yyscan_t yyscanner)
 static void nextCodeLine(yyscan_t yyscanner)
 {
   struct yyguts_t *yyg = (struct yyguts_t*)yyscanner;
-  const FontClass fc = yyextra->currentFontClass;
+  const MaybeFontClass fc = yyextra->currentFontClass;
   endCodeLine(yyscanner);
   if (yyextra->yyLineNr<yyextra->inputLines)
   {
@@ -1143,7 +1143,7 @@ static void startFontClass(yyscan_t yyscanner,const FontClass s)
   struct yyguts_t *yyg = (struct yyguts_t*)yyscanner;
   // if font class is already set don't stop and start it.
   // strcmp does not like null pointers as input.
-  if (yyextra->currentFontClass != FontClass::none || yyextra->currentFontClass != s)
+  if (yyextra->currentFontClass || yyextra->currentFontClass != s)
   {
     endFontClass(yyscanner);
     yyextra->code->startFontClass(s);
@@ -1156,10 +1156,10 @@ static void startFontClass(yyscan_t yyscanner,const FontClass s)
 static void endFontClass(yyscan_t yyscanner)
 {
   struct yyguts_t *yyg = (struct yyguts_t*)yyscanner;
-  if (yyextra->currentFontClass != FontClass::none)
+  if (yyextra->currentFontClass)
   {
     yyextra->code->endFontClass();
-    yyextra->currentFontClass=FontClass::none;
+    yyextra->currentFontClass=std::nullopt;
   }
 }
 
@@ -1584,7 +1584,7 @@ void PythonCodeParser::parseCode(CodeOutputInterface &codeOutIntf,
   yyextra->code = &codeOutIntf;
   yyextra->inputString   = input.data();
   yyextra->inputPosition = 0;
-  yyextra->currentFontClass = FontClass::none;
+  yyextra->currentFontClass = std::nullopt;
   yyextra->needsTermination = FALSE;
   yyextra->searchCtx=searchCtx;
   yyextra->collectXRefs=collectXRefs;

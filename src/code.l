@@ -128,7 +128,7 @@ struct codeYY_state
   const Definition *  currentDefinition = 0;
   const MemberDef *   currentMemberDef = 0;
   bool          includeCodeFragment = FALSE;
-  FontClass     currentFontClass = FontClass::none;
+  MaybeFontClass currentFontClass = std::nullopt;
   bool          searchingForBody = FALSE;
   bool          insideBody = FALSE;
   int           bodyCurlyCount = 0;
@@ -2388,9 +2388,9 @@ static void startCodeLine(yyscan_t yyscanner)
   }
   DBG_CTX((stderr,"startCodeLine(%d)\n",yyextra->yyLineNr));
   yyextra->code->startCodeLine(yyextra->sourceFileDef && yyextra->lineNumbers);
-  if (yyextra->currentFontClass != FontClass::none)
+  if (yyextra->currentFontClass)
   {
-    yyextra->code->startFontClass(yyextra->currentFontClass);
+    yyextra->code->startFontClass(*yyextra->currentFontClass);
   }
 }
 
@@ -2407,7 +2407,7 @@ static void endCodeLine(yyscan_t yyscanner)
 static void nextCodeLine(yyscan_t yyscanner)
 {
   struct yyguts_t *yyg = (struct yyguts_t*)yyscanner;
-  const FontClass fc = yyextra->currentFontClass;
+  const MaybeFontClass fc = yyextra->currentFontClass;
   endCodeLine(yyscanner);
   if (yyextra->yyLineNr<yyextra->inputLines)
   {
@@ -3354,10 +3354,10 @@ static int countLines(yyscan_t yyscanner)
 static void endFontClass(yyscan_t yyscanner)
 {
   struct yyguts_t *yyg = (struct yyguts_t*)yyscanner;
-  if (yyextra->currentFontClass != FontClass::none)
+  if (yyextra->currentFontClass)
   {
     yyextra->code->endFontClass();
-    yyextra->currentFontClass=FontClass::none;
+    yyextra->currentFontClass=std::nullopt;
   }
 }
 
@@ -3855,7 +3855,7 @@ void CCodeParser::parseCode(CodeOutputInterface &od,const QCString &className,co
   yyextra->inputString   = s.data();
   yyextra->inputPosition = 0;
   codeYYrestart(0,yyscanner);
-  yyextra->currentFontClass = FontClass::none;
+  yyextra->currentFontClass = std::nullopt;
   yyextra->needsTermination = FALSE;
   yyextra->searchCtx = searchCtx;
   yyextra->collectXRefs = collectXRefs;

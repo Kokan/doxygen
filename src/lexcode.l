@@ -80,7 +80,7 @@ struct lexcodeYY_state
      const Definition *currentDefinition;
      const MemberDef  *currentMemberDef;
      bool          includeCodeFragment;
-     FontClass     currentFontClass;
+     MaybeFontClass   currentFontClass;
 };
 
 #if USE_STATE2STRING
@@ -982,19 +982,19 @@ static void startCodeLine(yyscan_t yyscanner)
 
   yyextra->code->startCodeLine(yyextra->sourceFileDef && yyextra->lineNumbers);
 
-  if (yyextra->currentFontClass != FontClass::none)
+  if (yyextra->currentFontClass)
   {
-    yyextra->code->startFontClass(yyextra->currentFontClass);
+    yyextra->code->startFontClass(*yyextra->currentFontClass);
   }
 }
 
 static void endFontClass(yyscan_t yyscanner)
 {
   struct yyguts_t *yyg = (struct yyguts_t*)yyscanner;
-  if (yyextra->currentFontClass != FontClass::none)
+  if (yyextra->currentFontClass)
   {
     yyextra->code->endFontClass();
-    yyextra->currentFontClass=FontClass::none;
+    yyextra->currentFontClass=std::nullopt;
   }
 }
 
@@ -1008,7 +1008,7 @@ static void endCodeLine(yyscan_t yyscanner)
 static void nextCodeLine(yyscan_t yyscanner)
 {
   struct yyguts_t *yyg = (struct yyguts_t*)yyscanner;
-  const FontClass fc = yyextra->currentFontClass;
+  const MaybeFontClass fc = yyextra->currentFontClass;
   endCodeLine(yyscanner);
   if (yyextra->yyLineNr<yyextra->inputLines)
   {
@@ -1060,7 +1060,7 @@ static void startFontClass(yyscan_t yyscanner,const FontClass s)
 {
   struct yyguts_t *yyg = (struct yyguts_t*)yyscanner;
   endFontClass(yyscanner);
-  if (yyextra->currentFontClass == FontClass::none || yyextra->currentFontClass==s)
+  if (!yyextra->currentFontClass || yyextra->currentFontClass==s)
   {
     endFontClass(yyscanner);
     yyextra->code->startFontClass(s);
@@ -1200,7 +1200,7 @@ void LexCodeParser::parseCode(CodeOutputInterface &codeOutIntf,
   yyextra->code = &codeOutIntf;
   yyextra->inputString   = input.data();
   yyextra->inputPosition = 0;
-  yyextra->currentFontClass = FontClass::none;
+  yyextra->currentFontClass = std::nullopt;
   yyextra->needsTermination = false;
 
   yyextra->classScope=scopeName;
